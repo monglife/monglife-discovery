@@ -3,6 +3,7 @@ package com.monglife.discovery.gateway.app.filter;
 import com.monglife.discovery.gateway.app.service.WebClientService;
 import com.monglife.discovery.gateway.global.config.FilterConfig;
 import com.monglife.discovery.gateway.global.exception.PassportGenerateException;
+import com.monglife.discovery.gateway.global.exception.TokenExpiredException;
 import com.monglife.discovery.gateway.global.exception.TokenNotFoundException;
 import com.monglife.discovery.gateway.global.utils.HttpUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -35,12 +36,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
                     .trim();
 
             return webClientService.verityAccessToken(accessToken)
-                    .onErrorMap(throwable -> {
-
-                        log.info("{}", throwable.getMessage());
-
-                        throw new PassportGenerateException(accessToken);
-                    })
+                    .onErrorMap(throwable -> new TokenExpiredException(accessToken))
                     .flatMap(validationAccessTokenResDto -> {
                         if (config.isPreLogger()) log.info("[AuthorizationFilter] AccessToken: {}", accessToken);
                         return chain.filter(exchange);
