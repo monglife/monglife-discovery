@@ -170,6 +170,8 @@ public class AuthService {
                 .refreshToken(newRefreshToken)
                 .deviceId(tokenEntity.getDeviceId())
                 .accountId(tokenEntity.getAccountId())
+                .appPackageName(tokenEntity.getAppPackageName())
+                .buildVersion(tokenEntity.getBuildVersion())
                 .createdAt(LocalDateTime.now())
                 .expiration(refreshTokenExpiration)
                 .build());
