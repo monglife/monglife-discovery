@@ -1,7 +1,13 @@
 rootProject.name = 'monglife-discovery'
 
-include 'core'
 include 'apps'
 include 'apps:monglife-discovery-app-eureka'
 include 'apps:monglife-discovery-app-gateway'
-include 'apps:monglife-discovery-app-auth-api'
+include 'apps:monglife-discovery-app-common-api'
+
+include 'clients'
+include 'clients:monglife-discovery-client-fcm'
+
+include 'domains'
+include 'domains:monglife-discovery-domain-account'
+include 'domains:monglife-discovery-domain-device'

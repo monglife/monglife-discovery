@@ -1,0 +1,45 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+bootJar {
+    enabled(false)
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    jar {
+        enabled(true)
+    }
+
+    bootJar {
+        enabled(false)
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:2022.0.3"
+        }
+    }
+
+    dependencies {
+        // monglife-core
+        implementation 'com.github.MongLife:monglife-core:2.0.5'
+
+        // monglife-logging
+        implementation 'com.github.monglife.monglife-module-common:monglife-module-common-logging:1.0.0'
+
+        // spring
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+        // lombok
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+    }
+}

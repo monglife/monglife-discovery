@@ -1,25 +1,25 @@
-
 dependencies {
-    implementation project(':core')
-
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-
+    // spring
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-
     implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // gateway
     implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
     implementation 'io.github.resilience4j:resilience4j-bom:1.7.0'
 
+    // prometheus
     implementation 'org.springframework.boot:spring-boot-starter-actuator:3.2.1'
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 }
 
 tasks.register('copyPrivate', Copy) {
     copy {
-        from '../../configs/monglife-discovery-app-gateway/'
+        from '../../configs/apps/monglife-discovery-app-gateway/'
         include 'application*.yml'
         into 'src/main/resources'
     }

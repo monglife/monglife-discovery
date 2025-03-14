@@ -1,18 +1,11 @@
-
 plugins {
     id 'java-library'
-    id 'org.springframework.boot' version '3.1.1'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
 }
 
-allprojects {
-    repositories {
-        mavenCentral()
-    }
-
-    bootJar {
-        enabled(false)
-    }
+bootJar {
+    enabled(false)
 }
 
 subprojects {
@@ -20,7 +13,14 @@ subprojects {
     apply plugin: 'org.springframework.boot'
     apply plugin: 'io.spring.dependency-management'
 
-    sourceCompatibility = '17'
+    jar {
+        enabled(false)
+    }
+
+    bootJar {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        enabled(true)
+    }
 
     dependencyManagement {
         imports {
@@ -28,11 +28,11 @@ subprojects {
         }
     }
 
-    bootJar {
-        enabled(true)
-    }
+    dependencies {
+        // monglife-core
+        implementation 'com.github.MongLife:monglife-core:2.0.5'
 
-    jar {
-        enabled(false)
+        // monglife-logging
+        implementation 'com.github.monglife.monglife-module-common:monglife-module-common-logging:1.0.0'
     }
 }
