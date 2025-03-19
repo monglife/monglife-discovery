@@ -42,7 +42,6 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
             return webClientService.getPassportData(accessToken)
                     .onErrorMap(throwable -> new PassportGenerateException(accessToken))
                     .flatMap(passportDataVo -> {
-
                         PassportVo passportVo = PassportVo.builder()
                                 .data(PassportDataVo.builder()
                                         .account(passportDataVo.getPassportDataAccountVo())

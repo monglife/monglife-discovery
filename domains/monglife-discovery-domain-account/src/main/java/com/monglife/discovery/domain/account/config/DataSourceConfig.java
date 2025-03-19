@@ -2,7 +2,6 @@ package com.monglife.discovery.domain.account.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import lombok.extern.slf4j.Slf4j;
 import org.hibernate.cfg.AvailableSettings;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +20,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 import java.util.Properties;
 
-@Slf4j
 @Configuration("accountDataSourceConfig")
 @EnableTransactionManagement
 @EnableJpaRepositories(
@@ -55,13 +53,13 @@ public class DataSourceConfig {
     }
 
     @Bean(name = "accountJpaProperties")
-    public Properties accountJpaProperties(@Qualifier("hibernateProperties") Properties hibernateProperties, ConfigurableListableBeanFactory beanFactory) {
+    public Properties jpaProperties(@Qualifier("hibernateProperties") Properties hibernateProperties, ConfigurableListableBeanFactory beanFactory) {
         Properties jpaProperties = new Properties();
         jpaProperties.put(AvailableSettings.DIALECT, dialect);
         jpaProperties.put(AvailableSettings.HBM2DDL_AUTO, ddlAuto);
-        jpaProperties.put(AvailableSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory));
         jpaProperties.put(AvailableSettings.SHOW_SQL, showSql);
         jpaProperties.put(AvailableSettings.FORMAT_SQL, formatSql);
+        jpaProperties.put(AvailableSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory));
         jpaProperties.putAll(hibernateProperties);
         return jpaProperties;
     }

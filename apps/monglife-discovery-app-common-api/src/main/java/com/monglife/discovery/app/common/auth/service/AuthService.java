@@ -142,11 +142,12 @@ public class AuthService {
 
     /**
      * 토큰 재발행
+     * @param accessToken AccessToken
      * @param refreshToken RefreshToken
      * @return 재발행 토큰 정보 Dto
      */
     @Transactional
-    public ReissueDto reissue(String refreshToken) {
+    public ReissueDto reissue(String accessToken, String refreshToken) {
 
         // 존재 세션 삭제
         TokenVo tokenVo = tokenService.deleteToken(refreshToken);

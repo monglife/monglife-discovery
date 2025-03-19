@@ -23,8 +23,6 @@ public class LoginHistoryService {
     @Transactional
     public void patchLoginHistory(LoginHistoryVo loginHistoryVo) {
 
-        log.info("LoginHistoryVo : {}", loginHistoryVo);
-
         LoginHistoryEntity loginHistoryEntity = loginHistoryRepository.findByAccountIdAndDeviceIdAndLoginAt(loginHistoryVo.getAccountId(), loginHistoryVo.getDeviceId(), LocalDate.now())
                 .orElseGet(() -> loginHistoryRepository.save(LoginHistoryEntity.builder()
                         .accountId(loginHistoryVo.getAccountId())

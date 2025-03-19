@@ -106,7 +106,10 @@ public class AuthController {
     @PostMapping("/reissue")
     public ResponseEntity<ResponseDto<ReissueResponseDto>> reissue(@RequestBody ReissueRequestDto reissueRequestDto) {
 
-        ReissueDto reissueDto = authService.reissue(reissueRequestDto.getRefreshToken());
+        String accessToken = reissueRequestDto.getAccessToken();
+        String refreshToken = reissueRequestDto.getRefreshToken();
+
+        ReissueDto reissueDto = authService.reissue(accessToken, refreshToken);
 
         ReissueResponseDto reissueResponseDto = ReissueResponseDto.builder()
                 .accessToken(reissueDto.getAccessToken())

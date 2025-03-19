@@ -14,10 +14,15 @@ public class ReissueRequestDto {
 
     @NotEmpty
     @NotBlank
+    private String accessToken;
+
+    @NotEmpty
+    @NotBlank
     private String refreshToken;
 
     @Builder
-    public ReissueRequestDto(String refreshToken) {
+    public ReissueRequestDto(String accessToken, String refreshToken) {
+        this.accessToken = accessToken;
         this.refreshToken = refreshToken;
     }
 }

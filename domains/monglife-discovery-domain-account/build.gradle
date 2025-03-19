@@ -1,6 +1,6 @@
 dependencies {
     // monglife-jpa
-    implementation 'com.github.monglife.monglife-module-common:monglife-module-common-jpa:1.0.0'
+    implementation 'com.github.monglife.monglife-module-common:monglife-module-common-jpa:1.0.5'
 
     // mysql
     runtimeOnly 'com.mysql:mysql-connector-j'

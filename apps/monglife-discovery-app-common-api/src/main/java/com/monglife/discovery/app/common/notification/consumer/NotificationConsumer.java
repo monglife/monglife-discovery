@@ -1,8 +1,8 @@
 package com.monglife.discovery.app.common.notification.consumer;
 
-import com.monglife.module.common.kafka.event.TransactionEvent;
 import com.monglife.core.dto.event.SendNotificationDto;
 import com.monglife.discovery.app.common.notification.service.NotificationService;
+import com.monglife.module.common.kafka.event.TransactionEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;

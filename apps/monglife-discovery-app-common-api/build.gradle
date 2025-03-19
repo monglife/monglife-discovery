@@ -20,7 +20,7 @@ dependencies {
     runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
     // modules
-    implementation 'com.github.monglife.monglife-module-common:monglife-module-common-kafka:1.0.0'
+    implementation 'com.github.monglife.monglife-module-common:monglife-module-common-kafka:1.0.5'
 
     // clients
     implementation project(':clients:monglife-discovery-client-fcm')

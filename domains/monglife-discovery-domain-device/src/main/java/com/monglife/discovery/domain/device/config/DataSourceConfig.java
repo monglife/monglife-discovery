@@ -43,13 +43,13 @@ public class DataSourceConfig {
 
     @Bean(name = "deviceDataSourceProperties")
     @ConfigurationProperties(prefix = "spring.datasource.device.hikari")
-    public HikariConfig deviceDataSourceProperties() {
+    public HikariConfig dataSourceProperties() {
         return new HikariConfig();
     }
 
     @Bean(name = "deviceDataSource")
-    public DataSource deviceDataSource() {
-        return new HikariDataSource(deviceDataSourceProperties());
+    public DataSource dataSource(@Qualifier("deviceDataSourceProperties") HikariConfig dataSourceProperties) {
+        return new HikariDataSource(dataSourceProperties);
     }
 
     @Bean(name = "deviceJpaProperties")
@@ -57,9 +57,9 @@ public class DataSourceConfig {
         Properties jpaProperties = new Properties();
         jpaProperties.put(AvailableSettings.DIALECT, dialect);
         jpaProperties.put(AvailableSettings.HBM2DDL_AUTO, ddlAuto);
-        jpaProperties.put(AvailableSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory));
         jpaProperties.put(AvailableSettings.SHOW_SQL, showSql);
         jpaProperties.put(AvailableSettings.FORMAT_SQL, formatSql);
+        jpaProperties.put(AvailableSettings.BEAN_CONTAINER, new SpringBeanContainer(beanFactory));
         jpaProperties.putAll(hibernateProperties);
         return jpaProperties;
     }

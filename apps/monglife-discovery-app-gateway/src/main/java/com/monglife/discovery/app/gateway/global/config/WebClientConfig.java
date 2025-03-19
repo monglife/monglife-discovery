@@ -29,14 +29,14 @@ public class WebClientConfig {
     @Value("${env.webclient.write-timeout}")
     private int WRITE_TIMEOUT;
 
-    @Value("${env.webclient.routes.auth.url}")
-    private String AUTH_URL;
+    @Value("${env.webclient.routes.common.url}")
+    private String COMMON_URL;
 
     private final ReactorLoadBalancerExchangeFilterFunction lbFunction;
 
-    @Bean("authWebClient")
+    @Bean("commonWebClient")
     @LoadBalanced
-    public WebClient authWebClient() {
+    public WebClient commonWebClient() {
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT)
                 .responseTimeout(Duration.ofMillis(CONNECT_TIMEOUT))
@@ -45,7 +45,7 @@ public class WebClientConfig {
                                 .addHandlerLast(new WriteTimeoutHandler(WRITE_TIMEOUT, TimeUnit.MILLISECONDS)));
 
         return WebClient.builder()
-                .baseUrl("http://" + AUTH_URL)
+                .baseUrl("http://" + COMMON_URL)
                 .filter(lbFunction)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
