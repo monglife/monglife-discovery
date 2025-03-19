@@ -14,7 +14,7 @@ dependencies {
 
 tasks.register('copyPrivate', Copy) {
     copy {
-        from '../../configs/domains/monglife-discovery-domain-userDevice/'
+        from '../../configs/domains/monglife-discovery-domain-device/'
         include '*.yml'
         into 'src/main/resources'
     }
