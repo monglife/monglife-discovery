@@ -1,0 +1,17 @@
+dependencies {
+    // spring
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-server'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // prometheus
+    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.2.1'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+}
+
+tasks.register('copyPrivate', Copy) {
+    copy {
+        from '../../configs/apps/monglife-discovery-app-eureka/'
+        include 'application*.yml'
+        into 'src/main/resources'
+    }
+}

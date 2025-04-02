@@ -1,0 +1,21 @@
+dependencies {
+    // monglife-jpa
+    implementation 'com.github.monglife.monglife-module-common:monglife-module-common-jpa:1.0.5'
+
+    // mysql
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // queryDSL
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+    annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jakarta"
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+}
+
+tasks.register('copyPrivate', Copy) {
+    copy {
+        from '../../configs/domains/monglife-discovery-domain-device/'
+        include '*.yml'
+        into 'src/main/resources'
+    }
+}
