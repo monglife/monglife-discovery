@@ -4,6 +4,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -14,16 +15,20 @@ import java.io.IOException;
 import java.io.InputStream;
 
 @Configuration
-public class FirebaseConfig {
+public class MongsFirebaseConfig {
 
-    @Value("${firebase.account.filepath}")
-    private String FIREBASE_ACCOUNT_FILE_PATH;
+    private static final String APP_NAME                = "mongs";
+    private static final String FIREBASE_APP_NAME       = APP_NAME + "FirebaseApp";
+    private static final String FIREBASE_MESSAGING_NAME = APP_NAME + "FirebaseMessaging";
 
-    @Value("${firebase.package-name}")
+    @Value("${firebase." + APP_NAME + ".package-name}")
     private String FIREBASE_PACKAGE_NAME;
 
-    @Bean
-    @ConditionalOnMissingBean(FirebaseApp.class)
+    @Value("${firebase." + APP_NAME + ".account.filepath}")
+    private String FIREBASE_ACCOUNT_FILE_PATH;
+
+    @Bean(FIREBASE_APP_NAME)
+    @ConditionalOnMissingBean(name = FIREBASE_APP_NAME)
     public FirebaseApp firebaseApp() throws IOException {
 
         InputStream inputStream = new ClassPathResource(FIREBASE_ACCOUNT_FILE_PATH).getInputStream();
@@ -44,8 +49,8 @@ public class FirebaseConfig {
         return app;
     }
 
-    @Bean
-    public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
+    @Bean(FIREBASE_MESSAGING_NAME)
+    public FirebaseMessaging firebaseMessaging(@Qualifier(FIREBASE_APP_NAME) FirebaseApp firebaseApp) {
         return FirebaseMessaging.getInstance(firebaseApp);
     }
 }

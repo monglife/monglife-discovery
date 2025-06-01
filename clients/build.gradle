@@ -1,7 +1,7 @@
 plugins {
-    id 'java-library'
-    id 'org.springframework.boot'
-    id 'io.spring.dependency-management'
+    id "java-library"
+    id "org.springframework.boot"        version "${springBootVersion}"
+    id "io.spring.dependency-management" version "${springDependencyManagementVersion}"
 }
 
 bootJar {
@@ -9,9 +9,9 @@ bootJar {
 }
 
 subprojects {
-    apply plugin: 'java-library'
-    apply plugin: 'org.springframework.boot'
-    apply plugin: 'io.spring.dependency-management'
+    apply plugin: "java-library"
+    apply plugin: "org.springframework.boot"
+    apply plugin: "io.spring.dependency-management"
 
     jar {
         enabled(true)
@@ -29,17 +29,16 @@ subprojects {
 
     dependencies {
         // monglife-core
-        implementation 'com.github.monglife:monglife-core:2.0.7'
-
+        implementation "com.github.monglife:monglife-core:${monglifeCoreVersion}"
         // monglife-logging
-        implementation 'com.github.monglife.monglife-module-common:monglife-module-common-logging:1.0.5'
-
-        // spring
-        implementation 'org.springframework.boot:spring-boot-starter-web'
-        developmentOnly 'org.springframework.boot:spring-boot-devtools'
+        implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}"
 
         // lombok
-        compileOnly 'org.projectlombok:lombok'
-        annotationProcessor 'org.projectlombok:lombok'
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+        // spring
+        implementation "org.springframework.boot:spring-boot-starter-web"
+        developmentOnly "org.springframework.boot:spring-boot-devtools"
     }
 }

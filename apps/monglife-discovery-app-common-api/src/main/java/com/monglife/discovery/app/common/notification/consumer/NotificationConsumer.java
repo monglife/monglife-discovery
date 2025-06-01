@@ -15,11 +15,11 @@ public class NotificationConsumer {
     private final NotificationService notificationService;
 
     /**
-     * 알림 전송 트랜잭션 컨슈머
+     * Mongs 알림 전송 트랜잭션 컨슈머
      * @param event 알림 전송 이벤트
      */
-    @KafkaListener(topics = "notification")
-    public void sendNotification(@RequestBody TransactionEvent<SendNotificationDto> event) {
+    @KafkaListener(topics = "notification.mongs")
+    public void sendMongsNotification(@RequestBody TransactionEvent<SendNotificationDto> event) {
 
         SendNotificationDto sendNotificationDto = event.getData();
 

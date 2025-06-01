@@ -1,16 +1,23 @@
+buildscript {
+    ext {
+        springBootVersion                 = "3.1.1"
+        springDependencyManagementVersion = "1.1.4"
+        acuatorVersion                    = "3.2.1"
+        lombokVersion                     = "1.18.30"
+        monglifeCoreVersion               = "2.0.7"
+        monglifeModuleCommonVersion       = "1.0.12"
+    }
+}
+
 plugins {
-    id 'java-library'
-    id 'org.springframework.boot' version '3.1.1'
-    id 'io.spring.dependency-management' version '1.1.4'
+    id "java-library"
+    id "org.springframework.boot"        version "${springBootVersion}"
+    id "io.spring.dependency-management" version "${springDependencyManagementVersion}"
 }
 
-bootJar {
-    enabled(false)
-}
-
-allprojects {
-    group = 'com.monglife.discovery'
-    version = '2.1.0'
+subprojects {
+    group = "com.monglife.discovery"
+    version = "2.1.0"
 
     repositories {
         mavenCentral()
@@ -19,5 +26,32 @@ allprojects {
 
     java {
         sourceCompatibility = JavaVersion.VERSION_17
+    }
+
+    tasks.register("copyPrivate", DefaultTask) {
+
+        def configPath = "../../configs"
+        def fullPath = project.path
+        def pathSegments = fullPath.tokenize(":")
+
+        if (pathSegments.size() > 1) {
+            def parentModule = pathSegments[-2]
+            def currentModule = pathSegments[-1]
+
+            doLast {
+                project.delete fileTree("src/main/resources") {
+                    include("*.yml")
+                    include("*.json")
+                }
+
+                project.copy {
+                    from(configPath + "/" + parentModule + "/" + currentModule + "/") {
+                        include("*.yml")
+                        include("*.json")
+                    }
+                    into("src/main/resources")
+                }
+            }
+        }
     }
 }
