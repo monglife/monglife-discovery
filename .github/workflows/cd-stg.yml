@@ -72,6 +72,7 @@ jobs:
   # Discovery Gateway 빌드 및 배포
   gateway-build-and-deploy:
     runs-on: ubuntu-latest
+    needs: common-build-and-deploy
     environment: stage
     steps:
       # 소스 로드
