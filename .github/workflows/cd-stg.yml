@@ -9,10 +9,10 @@ permissions:
   checks: write
   pull-requests: write
 env:
-  app-common-path: ./apps/monglife-discovery-app-common-api
-  app-gateway-path: ./apps/monglife-discovery-app-gateway
-  app-common: monglife-discovery-app-common-api
-  app-gateway: monglife-discovery-app-gateway
+  common-path: ./apps/monglife-discovery-common-api
+  gateway-path: ./apps/monglife-discovery-gateway
+  common: monglife-discovery-common-api
+  gateway: monglife-discovery-gateway
   service-path: ~/service/discovery
   service-script: ~/service/discovery/run.sh
 jobs:
@@ -56,8 +56,8 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          source: "${{ env.app-common-path }}/build/libs/*.jar"
-          target: "${{ env.service-path }}/${{ env.app-common }}"
+          source: "${{ env.common-path }}/build/libs/*.jar"
+          target: "${{ env.service-path }}/${{ env.common }}"
           strip_components: 4
       # 배포 스크립트 실행
       - name: Discovery Common API 서비스 실행
@@ -68,7 +68,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            sh ${{ env.service-script }} ${{ env.app-common }} ${{ env.service-path }}/${{ env.app-common }}
+            sh ${{ env.service-script }} ${{ env.common }} ${{ env.service-path }}/${{ env.common }}
   # Discovery Gateway 빌드 및 배포
   gateway-build-and-deploy:
     runs-on: ubuntu-latest
@@ -109,8 +109,8 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          source: "${{ env.app-gateway-path }}/build/libs/*.jar"
-          target: "${{ env.service-path }}/${{ env.app-gateway }}"
+          source: "${{ env.gateway-path }}/build/libs/*.jar"
+          target: "${{ env.service-path }}/${{ env.gateway }}"
           strip_components: 4
       # 배포 스크립트 실행
       - name: Discovery Gateway 서비스 실행
@@ -121,4 +121,4 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            sh ${{ env.service-script }} ${{ env.app-gateway }} ${{ env.service-path }}/${{ env.app-gateway }}
+            sh ${{ env.service-script }} ${{ env.gateway }} ${{ env.service-path }}/${{ env.gateway }}
