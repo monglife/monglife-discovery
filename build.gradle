@@ -6,6 +6,7 @@ buildscript {
         lombokVersion                     = "1.18.30"
         monglifeCoreVersion               = "2.0.7"
         monglifeModuleCommonVersion       = "1.0.12"
+        monglifeModuleLoggingVersion      = "1.0.5"
     }
 }
 
