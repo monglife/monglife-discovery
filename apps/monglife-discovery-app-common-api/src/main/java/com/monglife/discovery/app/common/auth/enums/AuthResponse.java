@@ -19,9 +19,6 @@ public enum AuthResponse implements Response {
     DISCOVERY_APP_AUTH_REISSUE(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-003", "토큰 재발급에 성공하였습니다."),
     DISCOVERY_APP_AUTH_VALIDATION_TOKEN(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-004", "토큰 유효성 체크에 성공하였습니다."),
     DISCOVERY_APP_AUTH_GET_PASSPORT(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-005", "패스포트 발급에 성공하였습니다."),
-
-    DISCOVERY_APP_AUTH_ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED.value(), "DISCOVERY-APP-AUTH-100", "만료된 토큰입니다."),
-    DISCOVERY_APP_AUTH_NEED_UPDATE_APP_VERSION(HttpStatus.NOT_ACCEPTABLE.value(), "DISCOVERY-APP-AUTH-101", "앱 업데이트가 필요합니다."),
     ;
 
     private final Integer httpStatus;

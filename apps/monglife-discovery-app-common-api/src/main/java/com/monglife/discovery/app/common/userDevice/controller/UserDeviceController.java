@@ -4,6 +4,7 @@ import com.monglife.core.dto.response.ResponseDto;
 import com.monglife.discovery.app.common.userDevice.dto.request.CreateDeviceRequestDto;
 import com.monglife.discovery.app.common.userDevice.enums.UserDeviceResponse;
 import com.monglife.discovery.app.common.userDevice.service.UserDeviceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -26,7 +27,7 @@ public class UserDeviceController {
      * @return 성공 응답
      */
     @PostMapping("")
-    public ResponseEntity<ResponseDto<?>> createAndroidDevice(@RequestBody CreateDeviceRequestDto createDeviceRequestDto) {
+    public ResponseEntity<ResponseDto<?>> createAndroidDevice(@Valid @RequestBody CreateDeviceRequestDto createDeviceRequestDto) {
 
         String deviceId = createDeviceRequestDto.getDeviceId();
         String deviceName = createDeviceRequestDto.getDeviceName();

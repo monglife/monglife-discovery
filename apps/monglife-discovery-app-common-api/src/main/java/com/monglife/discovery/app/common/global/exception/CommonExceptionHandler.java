@@ -5,6 +5,7 @@ import com.monglife.core.enums.response.GlobalResponse;
 import com.monglife.core.exception.ErrorException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -22,15 +23,15 @@ import java.util.Set;
 public class CommonExceptionHandler {
 
     /**
-     * exception handler
+     * 사용자 정의 공통 예외 클래스 처리 핸들러
      * @param e 예외 객체
      * @return 에러 응답 객체
      */
     @ExceptionHandler(ErrorException.class)
     private ResponseEntity<ResponseDto<Map<String, Object>>> handleErrorException(ErrorException e) {
         return ResponseEntity
-                .status(e.getResponse().getHttpStatus())
-                .body(e.getResponse().toResponseDto(e.getResult()));
+                .status(HttpStatus.BAD_REQUEST.value())
+                .body(e.getErrorCode().toResponseDto(HttpStatus.BAD_REQUEST.value(), e.getResult()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

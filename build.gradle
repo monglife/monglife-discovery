@@ -4,9 +4,8 @@ buildscript {
         springDependencyManagementVersion = "1.1.4"
         acuatorVersion                    = "3.2.1"
         lombokVersion                     = "1.18.30"
-        monglifeCoreVersion               = "2.0.7"
+        monglifeCoreVersion               = "2.0.10"
         monglifeModuleCommonVersion       = "1.0.12"
-        monglifeModuleLoggingVersion      = "1.0.5"
     }
 }
 

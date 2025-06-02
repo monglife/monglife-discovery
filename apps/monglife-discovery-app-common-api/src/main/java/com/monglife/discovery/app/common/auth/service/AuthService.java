@@ -19,13 +19,11 @@ import com.monglife.discovery.domain.account.vo.TokenVo;
 import com.monglife.discovery.domain.device.service.AppVersionService;
 import com.monglife.discovery.domain.device.vo.AppVersionVo;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {

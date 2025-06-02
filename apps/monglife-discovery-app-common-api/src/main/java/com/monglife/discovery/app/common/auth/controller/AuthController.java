@@ -18,6 +18,7 @@ import com.monglife.discovery.app.common.auth.dto.response.ReissueResponseDto;
 import com.monglife.discovery.app.common.auth.dto.response.ValidationAccessTokenResponseDto;
 import com.monglife.discovery.app.common.auth.enums.AuthResponse;
 import com.monglife.discovery.app.common.auth.service.AuthService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +41,7 @@ public class AuthController {
      * @return 성공 응답
      */
     @PostMapping("/join")
-    public ResponseEntity<ResponseDto<?>> join(@RequestBody JoinRequestDto joinRequestDto) {
+    public ResponseEntity<ResponseDto<?>> join(@Valid @RequestBody JoinRequestDto joinRequestDto) {
 
         String email = joinRequestDto.getEmail();
         String name = joinRequestDto.getName();
@@ -57,7 +58,7 @@ public class AuthController {
      * @return 토큰 정보 Dto
      */
     @PostMapping("/login")
-    public ResponseEntity<ResponseDto<LoginResponseDto>> login(@RequestBody LoginRequestDto loginRequestDto) {
+    public ResponseEntity<ResponseDto<LoginResponseDto>> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
 
         String deviceId = loginRequestDto.getDeviceId();
         String email = loginRequestDto.getEmail();
@@ -86,7 +87,7 @@ public class AuthController {
      * @return 성공 응답
      */
     @PostMapping("/logout")
-    public ResponseEntity<ResponseDto<?>> logout(@RequestBody LogoutRequestDto logoutRequestDto) {
+    public ResponseEntity<ResponseDto<?>> logout(@Valid @RequestBody LogoutRequestDto logoutRequestDto) {
 
         String refreshToken = logoutRequestDto.getRefreshToken();
 
@@ -104,7 +105,7 @@ public class AuthController {
      * @return 재발행 토큰 정보 Dto
      */
     @PostMapping("/reissue")
-    public ResponseEntity<ResponseDto<ReissueResponseDto>> reissue(@RequestBody ReissueRequestDto reissueRequestDto) {
+    public ResponseEntity<ResponseDto<ReissueResponseDto>> reissue(@Valid @RequestBody ReissueRequestDto reissueRequestDto) {
 
         String accessToken = reissueRequestDto.getAccessToken();
         String refreshToken = reissueRequestDto.getRefreshToken();
