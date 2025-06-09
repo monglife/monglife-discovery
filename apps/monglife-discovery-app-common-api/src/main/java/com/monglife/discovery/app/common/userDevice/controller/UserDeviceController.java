@@ -4,6 +4,7 @@ import com.monglife.core.dto.response.ResponseDto;
 import com.monglife.discovery.app.common.userDevice.dto.request.CreateDeviceRequestDto;
 import com.monglife.discovery.app.common.userDevice.enums.UserDeviceResponse;
 import com.monglife.discovery.app.common.userDevice.service.UserDeviceService;
+import com.monglife.module.common.logging.annotation.EntryLoggingPoint;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,8 @@ public class UserDeviceController {
      * @param createDeviceRequestDto 걸음 수 Dto
      * @return 성공 응답
      */
-    @PostMapping("")
+    @EntryLoggingPoint
+    @PostMapping
     public ResponseEntity<ResponseDto<?>> createAndroidDevice(@Valid @RequestBody CreateDeviceRequestDto createDeviceRequestDto) {
 
         String deviceId = createDeviceRequestDto.getDeviceId();

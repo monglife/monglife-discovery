@@ -59,6 +59,7 @@ jobs:
           source: "${{ env.common-path }}/build/libs/*.jar"
           target: "${{ env.service-path }}/${{ env.common }}"
           strip_components: 4
+          timeout: '120s'
       # 배포 스크립트 실행
       - name: Discovery Common API 서비스 실행
         uses: appleboy/ssh-action@v1

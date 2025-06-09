@@ -3,10 +3,7 @@ package com.monglife.discovery.app.common.auth.service;
 import com.monglife.core.enums.role.RoleCode;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
-import com.monglife.discovery.app.common.auth.dto.etc.LoginDto;
-import com.monglife.discovery.app.common.auth.dto.etc.LogoutDto;
-import com.monglife.discovery.app.common.auth.dto.etc.ReissueDto;
-import com.monglife.discovery.app.common.auth.dto.etc.VerifyAccessTokenDto;
+import com.monglife.discovery.app.common.auth.dto.etc.*;
 import com.monglife.discovery.app.common.auth.exception.NeedAppUpdateException;
 import com.monglife.discovery.app.common.auth.exception.TokenExpiredException;
 import com.monglife.discovery.app.common.global.provider.TokenProvider;
@@ -191,6 +188,24 @@ public class AuthService {
 
         return VerifyAccessTokenDto.builder()
                 .accessToken(accessToken)
+                .build();
+    }
+
+    /**
+     * BuildVersion 검증
+     * @param appPackageName 앱 패키지 명
+     * @param buildVersion 빌드 버전
+     * @return 검증 정보 Dto
+     */
+    @Transactional(readOnly = true)
+    public VerifyBuildVersionDto verifyBuildVersion(String appPackageName, String buildVersion) {
+
+        AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
+
+        return VerifyBuildVersionDto.builder()
+                .appPackageName(appVersionVo.getAppPackageName())
+                .buildVersion(appVersionVo.getBuildVersion())
+                .mustUpdate(appVersionVo.getMustUpdate())
                 .build();
     }
 

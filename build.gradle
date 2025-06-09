@@ -5,7 +5,8 @@ buildscript {
         acuatorVersion                    = "3.2.1"
         lombokVersion                     = "1.18.30"
         monglifeCoreVersion               = "2.0.10"
-        monglifeModuleCommonVersion       = "1.0.12"
+        monglifeModuleCommonVersion       = "2.0.5"
+        logstashVersion                   = "7.4"
     }
 }
 
@@ -42,12 +43,14 @@ subprojects {
                 project.delete fileTree("src/main/resources") {
                     include("*.yml")
                     include("*.json")
+                    include("*.xml")
                 }
 
                 project.copy {
                     from(configPath + "/" + parentModule + "/" + currentModule + "/") {
                         include("*.yml")
                         include("*.json")
+                        include("*.xml")
                     }
                     into("src/main/resources")
                 }

@@ -1,4 +1,9 @@
 dependencies {
+    // monglife-logging
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging-core:${monglifeModuleCommonVersion}"
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}"
+    implementation "net.logstash.logback:logstash-logback-encoder:${logstashVersion}"
+
     // spring
     implementation "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client"
     implementation "org.springframework.cloud:spring-cloud-starter-gateway"

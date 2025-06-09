@@ -40,3 +40,7 @@ out/
 **/src/*/resources/*.yml
 **/src/*/resources/*-*.yml
 **/src/*/resources/*.json
+**/src/*/resources/*.xml
+
+### log ###
+logs/

@@ -1,7 +1,11 @@
 package com.monglife.discovery.app.gateway.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.monglife.core.vo.passport.PassportDataVo;
 import com.monglife.core.vo.passport.PassportVo;
+import com.monglife.discovery.app.gateway.dto.etc.GeneratePassportLogDto;
 import com.monglife.discovery.app.gateway.service.WebClientService;
 import com.monglife.discovery.app.gateway.global.config.FilterConfig;
 import com.monglife.discovery.app.gateway.global.exception.PassportGenerateException;
@@ -23,11 +27,17 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
 
     private final WebClientService webClientService;
     private final HttpUtils httpUtils;
+    private final ObjectMapper objectMapper;
 
     public GeneratePassportFilter(WebClientService webClientService, HttpUtils httpUtils) {
         super(FilterConfig.class);
         this.webClientService = webClientService;
         this.httpUtils = httpUtils;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+        this.objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        this.objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
+        this.objectMapper.configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, false);
     }
 
     @Override
@@ -56,7 +66,21 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                         request.mutate().header("passport", URLEncoder.encode(passportJson, StandardCharsets.UTF_8)).build();
 
                         if (config.isPreLogger()) {
-                            log.info("[PassportFilter] Passport: {}", passportJson);
+                            String className = this.getClass().getName();
+                            String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+
+                            GeneratePassportLogDto generatePassportLogDto = GeneratePassportLogDto.builder()
+                                    .entryMethod(methodName)
+                                    .className(className)
+                                    .method(methodName)
+                                    .accountId(passportVo.getData().getAccount().getAccountId())
+                                    .appPackageName(passportVo.getData().getAppVersion().getAppPackageName())
+                                    .buildVersion(passportVo.getData().getAppVersion().getBuildVersion())
+                                    .build();
+
+                            try {
+                                log.info("{}", objectMapper.writeValueAsString(generatePassportLogDto));
+                            } catch (Exception ignored) {}
                         }
 
                         return chain.filter(exchange);
