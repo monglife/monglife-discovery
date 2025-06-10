@@ -1,15 +1,11 @@
 package com.monglife.discovery.app.gateway.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.monglife.discovery.app.gateway.dto.etc.AuthenticationLogDto;
-import com.monglife.discovery.app.gateway.service.WebClientService;
 import com.monglife.discovery.app.gateway.global.config.FilterConfig;
 import com.monglife.discovery.app.gateway.global.exception.TokenExpiredException;
 import com.monglife.discovery.app.gateway.global.exception.TokenNotFoundException;
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
-import com.monglife.module.common.logging.annotation.EntryLoggingPoint;
+import com.monglife.discovery.app.gateway.service.WebClientService;
 import com.monglife.module.common.logging.utils.LoggingUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
