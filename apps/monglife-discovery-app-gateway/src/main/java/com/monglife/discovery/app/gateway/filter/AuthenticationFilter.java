@@ -40,17 +40,24 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
 
             return webClientService.verityAccessToken(accessToken)
                     .onErrorMap(throwable -> new TokenExpiredException(accessToken))
-                    .flatMap(validationAccessTokenResDto -> {
+                    .flatMap(verifyAccessTokenResponseDto -> {
                         if (config.isPreLogger()) {
 
                             String className = this.getClass().getName();
-                            String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+                            String methodName = "apply";
+
+                            String secretAccessToken = verifyAccessTokenResponseDto.getAccessToken();
+
+                            int endIndex = secretAccessToken.length();
+                            int startIndex = Math.max(0, endIndex / 2);
+
+                            secretAccessToken = secretAccessToken.substring(startIndex, endIndex) + "*".repeat(endIndex - startIndex);
 
                             AuthenticationLogDto authenticationLogDto = AuthenticationLogDto.builder()
                                     .entryMethod(methodName)
                                     .className(className)
                                     .method(methodName)
-                                    .accessToken(accessToken)
+                                    .accessToken(secretAccessToken)
                                     .build();
 
                             log.info("{}", loggingUtil.parseJson(authenticationLogDto));

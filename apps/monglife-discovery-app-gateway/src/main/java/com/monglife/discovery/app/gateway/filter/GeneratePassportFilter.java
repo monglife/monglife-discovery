@@ -61,7 +61,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
 
                         if (config.isPreLogger()) {
                             String className = this.getClass().getName();
-                            String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+                            String methodName = "apply";
 
                             GeneratePassportLogDto generatePassportLogDto = GeneratePassportLogDto.builder()
                                     .entryMethod(methodName)
