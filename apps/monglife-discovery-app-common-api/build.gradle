@@ -7,11 +7,10 @@ dependencies {
     implementation project(":domains:monglife-discovery-domain-device")
 
     // monglife-logging
-    implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging-core:${monglifeModuleCommonVersion}"
     implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}"
     implementation "net.logstash.logback:logstash-logback-encoder:${logstashVersion}"
 
-    // modules
+    // modules-kafka
     implementation "com.github.monglife.monglife-module-common:monglife-module-common-kafka:${monglifeModuleCommonVersion}"
 
     // spring
@@ -29,8 +28,4 @@ dependencies {
     implementation group: "io.jsonwebtoken", name: "jjwt-api", version: "0.11.5"
     runtimeOnly group: "io.jsonwebtoken", name: "jjwt-impl", version: "0.11.5"
     runtimeOnly group: "io.jsonwebtoken", name: "jjwt-jackson", version: "0.11.5"
-
-    // prometheus
-    implementation "org.springframework.boot:spring-boot-starter-actuator:${acuatorVersion}"
-    runtimeOnly "io.micrometer:micrometer-registry-prometheus"
 }

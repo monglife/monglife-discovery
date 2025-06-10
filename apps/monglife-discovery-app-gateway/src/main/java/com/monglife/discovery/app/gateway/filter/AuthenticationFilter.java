@@ -10,6 +10,7 @@ import com.monglife.discovery.app.gateway.global.exception.TokenExpiredException
 import com.monglife.discovery.app.gateway.global.exception.TokenNotFoundException;
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
 import com.monglife.module.common.logging.annotation.EntryLoggingPoint;
+import com.monglife.module.common.logging.utils.LoggingUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -22,17 +23,13 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
 
     private final WebClientService webClientService;
     private final HttpUtils httpUtils;
-    private final ObjectMapper objectMapper;
+    private final LoggingUtil loggingUtil;
 
-    public AuthenticationFilter(WebClientService webClientService, HttpUtils httpUtils) {
+    public AuthenticationFilter(WebClientService webClientService, HttpUtils httpUtils, LoggingUtil loggingUtil) {
         super(FilterConfig.class);
         this.webClientService = webClientService;
         this.httpUtils = httpUtils;
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        this.objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-        this.objectMapper.configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, false);
+        this.loggingUtil = loggingUtil;
     }
 
     @Override
@@ -59,9 +56,8 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
                                     .method(methodName)
                                     .accessToken(accessToken)
                                     .build();
-                            try {
-                                log.info("{}", objectMapper.writeValueAsString(authenticationLogDto));
-                            } catch (Exception ignored) {}
+
+                            log.info("{}", loggingUtil.parseJson(authenticationLogDto));
                         }
 
                         return chain.filter(exchange);

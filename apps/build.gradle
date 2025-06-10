@@ -32,5 +32,9 @@ subprojects {
     dependencies {
         // monglife-core
         implementation "com.github.monglife:monglife-core:${monglifeCoreVersion}"
+
+        // prometheus
+        implementation "org.springframework.boot:spring-boot-starter-actuator:${acuatorVersion}"
+        runtimeOnly "io.micrometer:micrometer-registry-prometheus"
     }
 }

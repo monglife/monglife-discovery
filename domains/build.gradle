@@ -30,8 +30,9 @@ subprojects {
     dependencies {
         // monglife-core
         implementation "com.github.monglife:monglife-core:${monglifeCoreVersion}"
+
         // monglife-logging
-        implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}"
+        implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging-core:${monglifeModuleCommonVersion}"
 
         // lombok
         compileOnly "org.projectlombok:lombok:${lombokVersion}"

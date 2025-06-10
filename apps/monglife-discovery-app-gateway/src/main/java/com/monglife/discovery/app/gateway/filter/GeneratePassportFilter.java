@@ -1,16 +1,14 @@
 package com.monglife.discovery.app.gateway.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.monglife.core.vo.passport.PassportDataVo;
 import com.monglife.core.vo.passport.PassportVo;
 import com.monglife.discovery.app.gateway.dto.etc.GeneratePassportLogDto;
-import com.monglife.discovery.app.gateway.service.WebClientService;
 import com.monglife.discovery.app.gateway.global.config.FilterConfig;
 import com.monglife.discovery.app.gateway.global.exception.PassportGenerateException;
 import com.monglife.discovery.app.gateway.global.exception.TokenNotFoundException;
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
+import com.monglife.discovery.app.gateway.service.WebClientService;
+import com.monglife.module.common.logging.utils.LoggingUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -27,17 +25,13 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
 
     private final WebClientService webClientService;
     private final HttpUtils httpUtils;
-    private final ObjectMapper objectMapper;
+    private final LoggingUtil loggingUtil;
 
-    public GeneratePassportFilter(WebClientService webClientService, HttpUtils httpUtils) {
+    public GeneratePassportFilter(WebClientService webClientService, HttpUtils httpUtils, LoggingUtil loggingUtil) {
         super(FilterConfig.class);
         this.webClientService = webClientService;
         this.httpUtils = httpUtils;
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        this.objectMapper.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false);
-        this.objectMapper.configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, false);
+        this.loggingUtil = loggingUtil;
     }
 
     @Override
@@ -78,9 +72,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                                     .buildVersion(passportVo.getData().getAppVersion().getBuildVersion())
                                     .build();
 
-                            try {
-                                log.info("{}", objectMapper.writeValueAsString(generatePassportLogDto));
-                            } catch (Exception ignored) {}
+                            log.info("{}", loggingUtil.parseJson(generatePassportLogDto));
                         }
 
                         return chain.filter(exchange);
