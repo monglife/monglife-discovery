@@ -9,6 +9,7 @@ import com.monglife.discovery.app.gateway.global.exception.PassportGenerateExcep
 import com.monglife.discovery.app.gateway.global.exception.TokenNotFoundException;
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
 import com.monglife.discovery.app.gateway.service.WebClientService;
+import com.monglife.discovery.app.gateway.vo.TraceVo;
 import com.monglife.module.common.logging.utils.LoggingUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -40,11 +41,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
 
-            String traceId = exchange.getAttributeOrDefault("traceId", CommonUtil.randomId());
-            int traceOffset = Integer.parseInt(exchange.getAttributeOrDefault("traceOffset", "-1")) + 1;
-
-            exchange.getAttributes().put("traceId", traceId);
-            exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset));
+            TraceVo traceVo = httpUtils.increaseAndGetTrace(exchange);
 
             String accessToken = httpUtils.getHeader(request, "Authorization")
                     .orElseThrow(TokenNotFoundException::new)
@@ -52,7 +49,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
 
             return webClientService.getPassportData(accessToken)
                     .onErrorMap(throwable -> {
-                        exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset - 1));
+                        httpUtils.decreaseTraceOffset(exchange);
                         throw new PassportGenerateException(accessToken);
                     })
                     .flatMap(passportDataVo -> {
@@ -74,9 +71,9 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                             String methodName = "apply";
 
                             GeneratePassportLogDto generatePassportLogDto = GeneratePassportLogDto.builder()
-                                    .traceId(traceId)
-                                    .traceOffset(traceOffset)
-                                    .entryMethod("")
+                                    .traceId(traceVo.getTraceId())
+                                    .traceOffset(traceVo.getTraceOffset())
+                                    .entryMethod("-")
                                     .className(className)
                                     .method(methodName)
                                     .accountId(passportVo.getData().getAccount().getAccountId())

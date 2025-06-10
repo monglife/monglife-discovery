@@ -1,8 +1,9 @@
 package com.monglife.discovery.app.gateway.filter;
 
-import com.monglife.core.utils.CommonUtil;
 import com.monglife.discovery.app.gateway.dto.etc.AccessLogDto;
 import com.monglife.discovery.app.gateway.global.config.FilterConfig;
+import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
+import com.monglife.discovery.app.gateway.vo.TraceVo;
 import com.monglife.module.common.logging.utils.LoggingUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -14,10 +15,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccessLoggingFilter extends AbstractGatewayFilterFactory<FilterConfig> {
 
+    private final HttpUtils httpUtils;
+
     private final LoggingUtil loggingUtil;
 
-    public AccessLoggingFilter(LoggingUtil loggingUtil) {
+    public AccessLoggingFilter(HttpUtils httpUtils, LoggingUtil loggingUtil) {
         super(FilterConfig.class);
+        this.httpUtils = httpUtils;
         this.loggingUtil = loggingUtil;
     }
 
@@ -27,20 +31,16 @@ public class AccessLoggingFilter extends AbstractGatewayFilterFactory<FilterConf
 
             ServerHttpRequest request = exchange.getRequest();
 
-            String traceId = exchange.getAttributeOrDefault("traceId", CommonUtil.randomId());
-            int traceOffset = Integer.parseInt(exchange.getAttributeOrDefault("traceOffset", "-1")) + 1;
-
-            exchange.getAttributes().put("traceId", traceId);
-            exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset));
+            TraceVo traceVo = httpUtils.increaseAndGetTrace(exchange);
 
             if (config.isPreLogger()) {
                 String className = this.getClass().getName();
                 String methodName = "apply";
 
                 AccessLogDto accessLogDto = AccessLogDto.builder()
-                        .traceId(traceId)
-                        .traceOffset(traceOffset)
-                        .entryMethod("")
+                        .traceId(traceVo.getTraceId())
+                        .traceOffset(traceVo.getTraceOffset())
+                        .entryMethod("-")
                         .className(className)
                         .method(methodName)
                         .httpMethod(request.getMethod().name())
