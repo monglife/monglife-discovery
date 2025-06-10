@@ -8,13 +8,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AuthenticationLogDto extends LogDto {
+public class AccessLogDto extends LogDto {
 
-    private String accessToken;
+    private String httpMethod;
+
+    private String mapping;
 
     @Builder
-    public AuthenticationLogDto(String traceId, Integer traceOffset, String entryMethod, String className, String method, String accessToken) {
+    public AccessLogDto(String traceId, Integer traceOffset, String entryMethod, String className, String method, String httpMethod, String mapping) {
         super(traceId, traceOffset, entryMethod, className, method, LogType.METHOD_CALL);
-        this.accessToken = accessToken;
+        this.httpMethod = httpMethod;
+        this.mapping = mapping;
     }
 }

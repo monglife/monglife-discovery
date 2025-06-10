@@ -1,5 +1,6 @@
 package com.monglife.discovery.app.gateway.filter;
 
+import com.monglife.core.utils.CommonUtil;
 import com.monglife.discovery.app.gateway.dto.etc.AuthenticationLogDto;
 import com.monglife.discovery.app.gateway.global.config.FilterConfig;
 import com.monglife.discovery.app.gateway.global.exception.TokenExpiredException;
@@ -33,13 +34,22 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
 
+            String traceId = exchange.getAttributeOrDefault("traceId", CommonUtil.randomId());
+            int traceOffset = Integer.parseInt(exchange.getAttributeOrDefault("traceOffset", "-1")) + 1;
+
+            exchange.getAttributes().put("traceId", traceId);
+            exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset));
+
             String accessToken = httpUtils.getHeader(request, "Authorization")
                     .orElseThrow(TokenNotFoundException::new)
                     .substring(6)
                     .trim();
 
             return webClientService.verityAccessToken(accessToken)
-                    .onErrorMap(throwable -> new TokenExpiredException(accessToken))
+                    .onErrorMap(throwable -> {
+                        exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset - 1));
+                        throw new TokenExpiredException(accessToken);
+                    })
                     .flatMap(verifyAccessTokenResponseDto -> {
                         if (config.isPreLogger()) {
 
@@ -54,7 +64,9 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
                             secretAccessToken = secretAccessToken.substring(startIndex, endIndex) + "*".repeat(endIndex - startIndex);
 
                             AuthenticationLogDto authenticationLogDto = AuthenticationLogDto.builder()
-                                    .entryMethod(methodName)
+                                    .traceId(traceId)
+                                    .traceOffset(traceOffset)
+                                    .entryMethod("")
                                     .className(className)
                                     .method(methodName)
                                     .accessToken(secretAccessToken)

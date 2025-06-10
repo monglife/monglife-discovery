@@ -1,5 +1,6 @@
 package com.monglife.discovery.app.gateway.filter;
 
+import com.monglife.core.utils.CommonUtil;
 import com.monglife.core.vo.passport.PassportDataVo;
 import com.monglife.core.vo.passport.PassportVo;
 import com.monglife.discovery.app.gateway.dto.etc.GeneratePassportLogDto;
@@ -39,12 +40,21 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
 
+            String traceId = exchange.getAttributeOrDefault("traceId", CommonUtil.randomId());
+            int traceOffset = Integer.parseInt(exchange.getAttributeOrDefault("traceOffset", "-1")) + 1;
+
+            exchange.getAttributes().put("traceId", traceId);
+            exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset));
+
             String accessToken = httpUtils.getHeader(request, "Authorization")
                     .orElseThrow(TokenNotFoundException::new)
                     .substring(7);
 
             return webClientService.getPassportData(accessToken)
-                    .onErrorMap(throwable -> new PassportGenerateException(accessToken))
+                    .onErrorMap(throwable -> {
+                        exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset - 1));
+                        throw new PassportGenerateException(accessToken);
+                    })
                     .flatMap(passportDataVo -> {
                         PassportVo passportVo = PassportVo.builder()
                                 .data(PassportDataVo.builder()
@@ -64,7 +74,9 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                             String methodName = "apply";
 
                             GeneratePassportLogDto generatePassportLogDto = GeneratePassportLogDto.builder()
-                                    .entryMethod(methodName)
+                                    .traceId(traceId)
+                                    .traceOffset(traceOffset)
+                                    .entryMethod("")
                                     .className(className)
                                     .method(methodName)
                                     .accountId(passportVo.getData().getAccount().getAccountId())
