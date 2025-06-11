@@ -9,8 +9,8 @@ import com.monglife.discovery.app.gateway.global.exception.TokenNotFoundExceptio
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
 import com.monglife.discovery.app.gateway.service.WebClientService;
 import com.monglife.discovery.app.gateway.vo.TraceVo;
+import com.monglife.module.common.logging.enums.LoggerType;
 import com.monglife.module.common.logging.utils.LoggingUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -20,7 +20,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
-@Slf4j
 @Component
 public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterConfig> {
 
@@ -46,7 +45,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                     .orElseThrow(TokenNotFoundException::new)
                     .substring(7);
 
-            return webClientService.getPassportData(accessToken)
+            return webClientService.getPassportData(accessToken, traceVo.getTraceId())
                     .onErrorMap(throwable -> {
                         httpUtils.decreaseTraceOffset(exchange);
                         throw new PassportGenerateException(accessToken);
@@ -80,7 +79,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                                     .buildVersion(passportVo.getData().getAppVersion().getBuildVersion())
                                     .build();
 
-                            log.info("{}", loggingUtil.parseJson(generatePassportLogDto));
+                            loggingUtil.printInfoLog(generatePassportLogDto, LoggerType.LOGSTASH_LOGGER);
                         }
 
                         return chain.filter(exchange);

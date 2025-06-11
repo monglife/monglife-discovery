@@ -8,11 +8,11 @@ import com.monglife.core.exception.ErrorException;
 import com.monglife.core.utils.CommonUtil;
 import com.monglife.discovery.app.gateway.global.response.GatewayErrorCode;
 import com.monglife.module.common.logging.dto.ExceptionLogDto;
+import com.monglife.module.common.logging.enums.LoggerType;
 import com.monglife.module.common.logging.utils.ArgsUtil;
 import com.monglife.module.common.logging.utils.LoggingUtil;
 import io.micrometer.common.lang.NonNullApi;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.cloud.gateway.support.NotFoundException;
 import org.springframework.core.ResolvableType;
@@ -31,7 +31,6 @@ import java.net.ConnectException;
 import java.util.Collections;
 import java.util.Map;
 
-@Slf4j
 @Order(-1)
 @Component
 @NonNullApi
@@ -66,16 +65,19 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         /* 시스템 정의 예외 처리 */
         if (e instanceof ErrorException errorException) {
             if (errorException instanceof TokenExpiredException) {
-                log.info("{}", loggingUtil.parseJson(exceptionLogDto));
+                loggingUtil.printInfoLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
             } else {
-                log.error("{}", loggingUtil.parseJson(exceptionLogDto));
+                loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
+                loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
             }
             return setErrorResponse(exchange, errorException.getErrorCode(), errorException.getResult());
         } else if (e instanceof NotFoundException || e instanceof ConnectException || e instanceof WebClientRequestException) {
-            log.error("{}", loggingUtil.parseJson(exceptionLogDto));
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
             return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL);
         } else {
-            log.error("{}", loggingUtil.parseJson(exceptionLogDto));
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
             return setErrorResponse(exchange, GlobalResponse.INTERNAL_SERVER_ERROR);
         }
     }

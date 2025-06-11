@@ -4,14 +4,13 @@ import com.monglife.discovery.app.gateway.dto.etc.AccessLogDto;
 import com.monglife.discovery.app.gateway.global.config.FilterConfig;
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
 import com.monglife.discovery.app.gateway.vo.TraceVo;
+import com.monglife.module.common.logging.enums.LoggerType;
 import com.monglife.module.common.logging.utils.LoggingUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 public class AccessLoggingFilter extends AbstractGatewayFilterFactory<FilterConfig> {
 
@@ -47,7 +46,7 @@ public class AccessLoggingFilter extends AbstractGatewayFilterFactory<FilterConf
                         .mapping(request.getPath().value())
                         .build();
 
-                log.info("{}", loggingUtil.parseJson(accessLogDto));
+                loggingUtil.printInfoLog(accessLogDto, LoggerType.LOGSTASH_LOGGER);
             }
 
             return chain.filter(exchange);

@@ -7,14 +7,13 @@ import com.monglife.discovery.app.gateway.global.exception.TokenNotFoundExceptio
 import com.monglife.discovery.app.gateway.global.utils.HttpUtils;
 import com.monglife.discovery.app.gateway.service.WebClientService;
 import com.monglife.discovery.app.gateway.vo.TraceVo;
+import com.monglife.module.common.logging.enums.LoggerType;
 import com.monglife.module.common.logging.utils.LoggingUtil;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterConfig> {
 
@@ -41,7 +40,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
                     .substring(6)
                     .trim();
 
-            return webClientService.verityAccessToken(accessToken)
+            return webClientService.verityAccessToken(accessToken, traceVo.getTraceId())
                     .onErrorMap(throwable -> {
                         httpUtils.decreaseTraceOffset(exchange);
                         throw new TokenExpiredException(accessToken);
@@ -67,7 +66,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
                                     .accessToken(secretAccessToken)
                                     .build();
 
-                            log.info("{}", loggingUtil.parseJson(authenticationLogDto));
+                            loggingUtil.printInfoLog(authenticationLogDto, LoggerType.LOGSTASH_LOGGER);
                         }
 
                         return chain.filter(exchange);
