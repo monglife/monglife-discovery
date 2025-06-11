@@ -40,7 +40,7 @@ public class AccessLoggingFilter extends AbstractGatewayFilterFactory<FilterConf
                 AccessLogDto accessLogDto = AccessLogDto.builder()
                         .traceId(traceVo.getTraceId())
                         .traceOffset(traceVo.getTraceOffset())
-                        .entryMethod("-")
+                        .entryMethod(String.format("%s#%s", className, methodName))
                         .className(className)
                         .method(methodName)
                         .httpMethod(request.getMethod().name())

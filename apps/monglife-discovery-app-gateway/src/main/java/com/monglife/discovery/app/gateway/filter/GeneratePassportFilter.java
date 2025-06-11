@@ -1,6 +1,5 @@
 package com.monglife.discovery.app.gateway.filter;
 
-import com.monglife.core.utils.CommonUtil;
 import com.monglife.core.vo.passport.PassportDataVo;
 import com.monglife.core.vo.passport.PassportVo;
 import com.monglife.discovery.app.gateway.dto.etc.GeneratePassportLogDto;
@@ -73,7 +72,7 @@ public class GeneratePassportFilter extends AbstractGatewayFilterFactory<FilterC
                             GeneratePassportLogDto generatePassportLogDto = GeneratePassportLogDto.builder()
                                     .traceId(traceVo.getTraceId())
                                     .traceOffset(traceVo.getTraceOffset())
-                                    .entryMethod("-")
+                                    .entryMethod(String.format("%s#%s", className, methodName))
                                     .className(className)
                                     .method(methodName)
                                     .accountId(passportVo.getData().getAccount().getAccountId())

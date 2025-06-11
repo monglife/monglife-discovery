@@ -63,14 +63,19 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
                 .stackTrace(argsUtil.generateExceptionTrace(e))
                 .build();
 
-        log.error("{}", loggingUtil.parseJson(exceptionLogDto));
-
         /* 시스템 정의 예외 처리 */
-        if (e instanceof NotFoundException || e instanceof ConnectException || e instanceof WebClientRequestException) {
-            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL);
-        } else if (e instanceof ErrorException errorException) {
+        if (e instanceof ErrorException errorException) {
+            if (errorException instanceof TokenExpiredException) {
+                log.info("{}", loggingUtil.parseJson(exceptionLogDto));
+            } else {
+                log.error("{}", loggingUtil.parseJson(exceptionLogDto));
+            }
             return setErrorResponse(exchange, errorException.getErrorCode(), errorException.getResult());
+        } else if (e instanceof NotFoundException || e instanceof ConnectException || e instanceof WebClientRequestException) {
+            log.error("{}", loggingUtil.parseJson(exceptionLogDto));
+            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL);
         } else {
+            log.error("{}", loggingUtil.parseJson(exceptionLogDto));
             return setErrorResponse(exchange, GlobalResponse.INTERNAL_SERVER_ERROR);
         }
     }

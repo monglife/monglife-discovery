@@ -48,21 +48,20 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<FilterCon
                     })
                     .flatMap(verifyAccessTokenResponseDto -> {
                         if (config.isPreLogger()) {
-
                             String className = this.getClass().getName();
                             String methodName = "apply";
 
                             String secretAccessToken = verifyAccessTokenResponseDto.getAccessToken();
 
+                            int startIndex = Math.max(0, secretAccessToken.length() / 4);
                             int endIndex = secretAccessToken.length();
-                            int startIndex = Math.max(0, endIndex / 2);
 
                             secretAccessToken = secretAccessToken.substring(startIndex, endIndex) + "*".repeat(endIndex - startIndex);
 
                             AuthenticationLogDto authenticationLogDto = AuthenticationLogDto.builder()
                                     .traceId(traceVo.getTraceId())
                                     .traceOffset(traceVo.getTraceOffset())
-                                    .entryMethod("-")
+                                    .entryMethod(String.format("%s#%s", className, methodName))
                                     .className(className)
                                     .method(methodName)
                                     .accessToken(secretAccessToken)
