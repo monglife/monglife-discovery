@@ -1,6 +1,6 @@
 dependencies {
     // monglife-logging
-    implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}"
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging-core:${monglifeModuleCommonVersion}"
 
     // Firebase Admin SDK
     api "com.google.firebase:firebase-admin:9.2.0"

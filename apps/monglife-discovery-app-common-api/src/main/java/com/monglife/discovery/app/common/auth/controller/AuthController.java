@@ -79,7 +79,7 @@ public class AuthController {
     }
 
     /**
-     * 로그 아웃
+     * 로그아웃
      * @param logoutRequestDto 로그 아웃 정보 Dto
      * @return 성공 응답
      */
@@ -120,24 +120,6 @@ public class AuthController {
     }
 
     /**
-     * 엑세스 토큰 검증
-     * @param accessToken 엑세스 토큰
-     * @return 엑세스 토큰을 포함한 성공 응답 Dto
-     */
-    @EntryLoggingPoint
-    @GetMapping("/verify/accessToken")
-    public ResponseEntity<ResponseDto<VerifyAccessTokenResponseDto>> verifyAccessToken(@RequestParam("accessToken") @NotBlank String accessToken) {
-
-        VerifyAccessTokenDto verifyAccessTokenDto = authService.verifyAccessToken(accessToken);
-
-        VerifyAccessTokenResponseDto verifyAccessTokenResponseDto = VerifyAccessTokenResponseDto.builder()
-                .accessToken(verifyAccessTokenDto.getAccessToken())
-                .build();
-
-        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_VERIFY_TOKEN.toResponseDto(verifyAccessTokenResponseDto));
-    }
-
-    /**
      * 앱 버전 검증
      * @param appPackageName 앱 패키지 명
      * @param buildVersion 앱 빌드 버전
@@ -158,6 +140,24 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_VERIFY_BUILD_VERSION.toResponseDto(verifyBuildVersionResponseDto));
+    }
+
+    /**
+     * 엑세스 토큰 검증
+     * @param accessToken 엑세스 토큰
+     * @return 엑세스 토큰을 포함한 성공 응답 Dto
+     */
+    @EntryLoggingPoint
+    @GetMapping("/verify/accessToken")
+    public ResponseEntity<ResponseDto<VerifyAccessTokenResponseDto>> verifyAccessToken(@RequestParam("accessToken") @NotBlank String accessToken) {
+
+        VerifyAccessTokenDto verifyAccessTokenDto = authService.verifyAccessToken(accessToken);
+
+        VerifyAccessTokenResponseDto verifyAccessTokenResponseDto = VerifyAccessTokenResponseDto.builder()
+                .accessToken(verifyAccessTokenDto.getAccessToken())
+                .build();
+
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_VERIFY_TOKEN.toResponseDto(verifyAccessTokenResponseDto));
     }
 
     /**

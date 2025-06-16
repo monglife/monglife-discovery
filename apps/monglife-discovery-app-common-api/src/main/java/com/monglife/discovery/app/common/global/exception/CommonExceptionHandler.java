@@ -3,6 +3,7 @@ package com.monglife.discovery.app.common.global.exception;
 import com.monglife.core.dto.response.ResponseDto;
 import com.monglife.core.enums.response.GlobalResponse;
 import com.monglife.core.exception.ErrorException;
+import com.monglife.discovery.domain.account.exception.NotExistsAccountException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;

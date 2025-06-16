@@ -4,7 +4,6 @@ import com.monglife.core.enums.role.RoleCode;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
 import com.monglife.discovery.app.common.auth.dto.etc.*;
-import com.monglife.discovery.app.common.auth.exception.NeedAppUpdateException;
 import com.monglife.discovery.app.common.auth.exception.TokenExpiredException;
 import com.monglife.discovery.app.common.global.provider.TokenProvider;
 import com.monglife.discovery.domain.account.service.AccountService;
@@ -67,13 +66,6 @@ public class AuthService {
     @Transactional
     public LoginDto login(String deviceId, String socialAccountId, String email, String appPackageName, String deviceName, String buildVersion) {
 
-        AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
-
-        // 앱 업데이트 여부 확인
-        if (appVersionVo.getMustUpdate()) {
-            throw new NeedAppUpdateException();
-        }
-
         // 회원 조회
         AccountVo accountVo = accountService.getAccount(email);
 
@@ -85,7 +77,7 @@ public class AuthService {
         // 존재 세션 삭제
         tokenService.deleteToken(accountVo.getAccountId(), deviceId);
 
-        //  RefreshToken 발급
+        // RefreshToken 발급
         String refreshToken = tokenProvider.generateRefreshToken();
 
         // AccessToken 발급
@@ -94,6 +86,7 @@ public class AuthService {
         // 새로운 세션 등록
         tokenService.createToken(TokenVo.builder()
                 .refreshToken(refreshToken)
+                .accessToken(accessToken)
                 .deviceId(deviceId)
                 .accountId(accountVo.getAccountId())
                 .appPackageName(appPackageName)
@@ -144,6 +137,10 @@ public class AuthService {
     @Transactional
     public ReissueDto reissue(String accessToken, String refreshToken) {
 
+        if (tokenProvider.isTokenExpired(refreshToken)) {
+            throw new TokenExpiredException(refreshToken);
+        }
+
         // 존재 세션 삭제
         TokenVo tokenVo = tokenService.deleteToken(refreshToken);
 
@@ -186,6 +183,10 @@ public class AuthService {
             throw new TokenExpiredException(accessToken);
         }
 
+        if (!tokenService.isExistsToken(accessToken)) {
+            throw new TokenExpiredException(accessToken);
+        }
+
         return VerifyAccessTokenDto.builder()
                 .accessToken(accessToken)
                 .build();
@@ -221,6 +222,10 @@ public class AuthService {
             throw new TokenExpiredException(accessToken);
         }
 
+        if (!tokenService.isExistsToken(accessToken)) {
+            throw new TokenExpiredException(accessToken);
+        }
+
         Long accountId = tokenProvider.getAccountId(accessToken)
                 .orElseThrow(() -> new TokenExpiredException(accessToken));
 
@@ -247,6 +252,10 @@ public class AuthService {
     public PassportDataAppVersionVo getPassportDataAppVersion(String accessToken) {
 
         if (tokenProvider.isTokenExpired(accessToken)) {
+            throw new TokenExpiredException(accessToken);
+        }
+
+        if (!tokenService.isExistsToken(accessToken)) {
             throw new TokenExpiredException(accessToken);
         }
 
