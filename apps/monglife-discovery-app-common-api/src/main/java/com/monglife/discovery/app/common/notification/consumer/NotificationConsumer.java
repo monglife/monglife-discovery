@@ -22,9 +22,6 @@ public class NotificationConsumer {
     @EntryLoggingPoint
     @KafkaListener(topics = "${spring.config.activate.on-profile}.notification.mongs")
     public void sendMongsNotification(@RequestBody TransactionEvent<SendNotificationDto> event) {
-
-        SendNotificationDto sendNotificationDto = event.getData();
-
-        notificationService.sendNotification(sendNotificationDto);
+        notificationService.sendNotification(event.getData());
     }
 }

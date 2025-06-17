@@ -1,6 +1,7 @@
 package com.monglife.discovery.domain.account.service;
 
 import com.monglife.discovery.domain.account.entity.AccountEntity;
+import com.monglife.discovery.domain.account.exception.AlreadyExistsAccountException;
 import com.monglife.discovery.domain.account.exception.NotExistsAccountException;
 import com.monglife.discovery.domain.account.repository.AccountRepository;
 import com.monglife.discovery.domain.account.vo.AccountVo;
@@ -20,6 +21,9 @@ public class AccountService {
      */
     @Transactional
     public void createAccount(AccountVo accountVo) {
+
+        accountRepository.findByEmail(accountVo.getEmail())
+                .ifPresent(accountEntity -> { throw new AlreadyExistsAccountException(); });
 
         AccountEntity accountEntity = AccountEntity.builder()
                 .email(accountVo.getEmail())
