@@ -63,33 +63,31 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
                 .build();
 
         /* 시스템 정의 예외 처리 */
-        if (e instanceof ErrorException errorException) {
-            if (errorException instanceof TokenExpiredException) {
-                loggingUtil.printInfoLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
-            } else {
-                loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
-                loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
-            }
-            return setErrorResponse(exchange, errorException.getErrorCode(), errorException.getResult());
+        if (e instanceof TokenExpiredException errorException) {
+            loggingUtil.printInfoLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
+            return setErrorResponse(exchange, errorException.getErrorCode(), errorException.getResult(), HttpStatus.UNAUTHORIZED);
+        } else if (e instanceof TokenNotFoundException errorException) {
+            loggingUtil.printInfoLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
+            return setErrorResponse(exchange, errorException.getErrorCode(), errorException.getResult(), HttpStatus.BAD_REQUEST);
+        } else if (e instanceof ErrorException errorException) {
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
+            return setErrorResponse(exchange, errorException.getErrorCode(), errorException.getResult(), HttpStatus.INTERNAL_SERVER_ERROR);
         } else if (e instanceof NotFoundException || e instanceof ConnectException || e instanceof WebClientRequestException) {
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
-            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL);
+            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL, Collections.emptyMap(), HttpStatus.INTERNAL_SERVER_ERROR);
         } else {
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
-            return setErrorResponse(exchange, GlobalResponse.INTERNAL_SERVER_ERROR);
+            return setErrorResponse(exchange, GlobalResponse.INTERNAL_SERVER_ERROR, Collections.emptyMap());
         }
     }
 
-    private Mono<Void> setErrorResponse(ServerWebExchange exchange, ErrorCode errorCode) {
-        return this.setErrorResponse(exchange, errorCode, Collections.emptyMap());
-    }
-
-    private Mono<Void> setErrorResponse(ServerWebExchange exchange, ErrorCode errorCode, Map<String, ?> result) {
+    private Mono<Void> setErrorResponse(ServerWebExchange exchange, ErrorCode errorCode, Map<String, ?> result, HttpStatus httpStatus) {
 
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        exchange.getResponse().setStatusCode(HttpStatusCode.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+        exchange.getResponse().setStatusCode(HttpStatusCode.valueOf(httpStatus.value()));
         ResponseDto<Map<String, ?>> responseDto = errorCode.toResponseDto(HttpStatus.INTERNAL_SERVER_ERROR.value(), result);
 
         return exchange.getResponse().writeWith(
@@ -100,10 +98,6 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
                                 MediaType.APPLICATION_JSON,
                                 Hints.from(Hints.LOG_PREFIX_HINT, exchange.getLogPrefix()))
         );
-    }
-
-    private Mono<Void> setErrorResponse(ServerWebExchange exchange, Response response) {
-        return this.setErrorResponse(exchange, response, Collections.emptyMap());
     }
 
     private Mono<Void> setErrorResponse(ServerWebExchange exchange, Response response, Map<String, ?> result) {
