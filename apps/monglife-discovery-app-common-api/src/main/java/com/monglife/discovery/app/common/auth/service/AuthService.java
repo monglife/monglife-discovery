@@ -157,6 +157,7 @@ public class AuthService {
         // 새로운 세션 등록
         tokenService.createToken(TokenVo.builder()
                 .refreshToken(newRefreshToken)
+                .accessToken(newAccessToken)
                 .deviceId(tokenVo.getDeviceId())
                 .accountId(tokenVo.getAccountId())
                 .appPackageName(tokenVo.getAppPackageName())
