@@ -14,6 +14,9 @@ import java.util.Map;
 @RestControllerAdvice(basePackageClasses = AuthController.class)
 public class AuthExceptionHandler {
 
+    /**
+     * 계정 없음 예외 처리 응답
+     */
     @ExceptionHandler(NotExistsAccountException.class)
     private ResponseEntity<ResponseDto<Map<String, Object>>> handleNotExistsAccountException(NotExistsAccountException e) {
         return ResponseEntity
@@ -21,6 +24,9 @@ public class AuthExceptionHandler {
                 .body(e.getErrorCode().toResponseDto(HttpStatus.NOT_FOUND.value(), e.getResult()));
     }
 
+    /**
+     * 계정 존재 예외 처리 응답
+     */
     @ExceptionHandler(AlreadyExistsAccountException.class)
     private ResponseEntity<ResponseDto<Map<String, Object>>> handleAlreadyExistsAccountException(AlreadyExistsAccountException e) {
         return ResponseEntity
