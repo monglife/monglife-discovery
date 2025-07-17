@@ -7,7 +7,6 @@ import com.monglife.module.common.logging.annotation.EntryLoggingPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.RequestBody;
 
 @Component
 @RequiredArgsConstructor
@@ -21,7 +20,7 @@ public class NotificationConsumer {
      */
     @EntryLoggingPoint
     @KafkaListener(topics = "${spring.config.activate.on-profile}.notification.mongs")
-    public void sendMongsNotification(@RequestBody TransactionEvent<SendNotificationDto> event) {
+    public void sendMongsNotification(TransactionEvent<SendNotificationDto> event) {
         notificationService.sendNotification(event.getData());
     }
 }
