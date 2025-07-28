@@ -13,6 +13,9 @@ dependencies {
     // modules-kafka
     implementation "com.github.monglife.monglife-module-common:monglife-module-common-kafka:${monglifeModuleCommonVersion}"
 
+    // monglife-security
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-security:${monglifeModuleCommonVersion}"
+
     // spring
     implementation "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client"
     implementation "org.springframework.boot:spring-boot-starter-web"

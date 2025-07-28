@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Validated
 @RestController
-@RequestMapping("/userDevice")
+@RequestMapping("/public/userDevice")
 @RequiredArgsConstructor
 public class UserDeviceController {
 
