@@ -39,10 +39,10 @@ public class AuthenticationFilter extends GenericFilterBean {
 
         String accessToken = request.getHeader("Authorization");
 
-        if (accessToken != null) {
+        try {
             accessToken = accessToken.substring(6).trim();
 
-            MutableHttpServletRequest wrappedRequest = new MutableHttpServletRequest(request);
+            authService.verifyAccessToken(accessToken);
 
             PassportVo passportVo = PassportVo.builder()
                     .data(PassportDataVo.builder()
@@ -52,11 +52,12 @@ public class AuthenticationFilter extends GenericFilterBean {
                     .createdAt(LocalDateTime.now())
                     .build();
 
-            wrappedRequest.addHeader("passport",
-                    URLEncoder.encode(objectMapper.writeValueAsString(passportVo), StandardCharsets.UTF_8));
+            MutableHttpServletRequest wrapperRequest = new MutableHttpServletRequest(request);
+            wrapperRequest.addHeader("passport", URLEncoder.encode(objectMapper.writeValueAsString(passportVo), StandardCharsets.UTF_8));
 
-            chain.doFilter(wrappedRequest, response);
-        } else {
+            chain.doFilter(wrapperRequest, response);
+
+        } catch (Exception ignored) {
             chain.doFilter(request, response);
         }
     }
