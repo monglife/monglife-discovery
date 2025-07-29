@@ -4,6 +4,7 @@ import com.monglife.core.enums.role.RoleCode;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
 import com.monglife.discovery.app.common.auth.dto.etc.*;
+import com.monglife.discovery.app.common.auth.exception.NeedUpdateAppException;
 import com.monglife.discovery.app.common.auth.exception.TokenExpiredException;
 import com.monglife.discovery.app.common.global.provider.TokenProvider;
 import com.monglife.discovery.domain.account.service.AccountService;
@@ -65,6 +66,11 @@ public class AuthService {
      */
     @Transactional
     public LoginDto login(String deviceId, String socialAccountId, String email, String appPackageName, String deviceName, String buildVersion) {
+
+        // 앱 버전 체크
+        if (appVersionService.getAppVersion(appPackageName, buildVersion).getMustUpdate()) {
+            throw new NeedUpdateAppException();
+        };
 
         // 회원 조회
         AccountVo accountVo = accountService.getAccount(email);

@@ -33,4 +33,14 @@ public class AuthExceptionHandler {
                 .status(HttpStatus.NOT_ACCEPTABLE.value())
                 .body(e.getErrorCode().toResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), e.getResult()));
     }
+
+    /**
+     * 앱 업데이트 필요 예외 처리 응답
+     */
+    @ExceptionHandler(NeedUpdateAppException.class)
+    private ResponseEntity<ResponseDto<Map<String, Object>>> handleNeedUpdateAppException(NeedUpdateAppException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_ACCEPTABLE.value())
+                .body(e.getErrorCode().toResponseDto(HttpStatus.NOT_ACCEPTABLE.value(), e.getResult()));
+    }
 }
