@@ -1,8 +1,8 @@
-name: CD STAGE
+name: CD PRODUCT
 on:
   push:
     branches:
-      - stage
+      - release
 permissions:
   contents: read
   checks: write
@@ -18,7 +18,7 @@ jobs:
   # 빌드 및 배포
   discovery-deploy:
     runs-on: ubuntu-latest
-    environment: stage
+    environment: product
     steps:
       # 소스 로드
       - name: 소스 코드 로드
