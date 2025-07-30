@@ -1,0 +1,36 @@
+name: CI COMMON
+on:
+  push:
+    branches:
+      - develop
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+jobs:
+  # Discovery Common API 빌드 테스트
+  build-test:
+    name: Discovery Common API 빌드 테스트
+    runs-on: ubuntu-latest
+    steps:
+      # 소스 로드
+      - name: 소스 코드 로드
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.ACTION_TOKEN }}
+          submodules: true
+      # Java 환경 설정
+      - name: JDK 설정
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      # gradlew 권한 변경
+      - name: Gradle 권한 부여
+        run: chmod +x gradlew
+      # 환경 설정 파일 로드
+      - name: 환경 설정 파일 로드
+        run: ./gradlew copyPrivate
+      # Discovery Common API 빌드
+      - name: Discovery Common API 모듈 빌드
+        run: ./gradlew :apps:monglife-discovery-app-common-api:build

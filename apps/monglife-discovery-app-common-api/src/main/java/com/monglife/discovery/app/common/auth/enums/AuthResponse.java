@@ -1,13 +1,9 @@
 package com.monglife.discovery.app.common.auth.enums;
 
-import com.monglife.core.dto.response.ResponseDto;
 import com.monglife.core.enums.response.Response;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
-
-import java.util.Collections;
-import java.util.Map;
 
 @Getter
 @AllArgsConstructor
@@ -17,11 +13,9 @@ public enum AuthResponse implements Response {
     DISCOVERY_APP_AUTH_LOGIN(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-001", "로그인에 성공하였습니다."),
     DISCOVERY_APP_AUTH_LOGOUT(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-002", "로그아웃에 성공하였습니다."),
     DISCOVERY_APP_AUTH_REISSUE(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-003", "토큰 재발급에 성공하였습니다."),
-    DISCOVERY_APP_AUTH_VALIDATION_TOKEN(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-004", "토큰 유효성 체크에 성공하였습니다."),
-    DISCOVERY_APP_AUTH_GET_PASSPORT(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-005", "패스포트 발급에 성공하였습니다."),
-
-    DISCOVERY_APP_AUTH_ACCESS_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED.value(), "DISCOVERY-APP-AUTH-100", "만료된 토큰입니다."),
-    DISCOVERY_APP_AUTH_NEED_UPDATE_APP_VERSION(HttpStatus.NOT_ACCEPTABLE.value(), "DISCOVERY-APP-AUTH-101", "앱 업데이트가 필요합니다."),
+    DISCOVERY_APP_AUTH_VERIFY_TOKEN(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-004", "토큰 유효성 체크에 성공하였습니다."),
+    DISCOVERY_APP_VERIFY_BUILD_VERSION(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-005", "앱 버전 유효성 체크에 성공하였습니다."),
+    DISCOVERY_APP_AUTH_GET_PASSPORT(HttpStatus.OK.value(), "DISCOVERY-APP-AUTH-006", "패스포트 발급에 성공하였습니다."),
     ;
 
     private final Integer httpStatus;
@@ -29,14 +23,4 @@ public enum AuthResponse implements Response {
     private final String code;
 
     private final String message;
-
-    @Override
-    public ResponseDto<Map<String, Object>> toResponseDto() {
-        return new ResponseDto<>(code, message, httpStatus, Collections.emptyMap());
-    }
-
-    @Override
-    public <T> ResponseDto<T> toResponseDto(T result) {
-        return new ResponseDto<>(code, message, httpStatus, result);
-    }
 }

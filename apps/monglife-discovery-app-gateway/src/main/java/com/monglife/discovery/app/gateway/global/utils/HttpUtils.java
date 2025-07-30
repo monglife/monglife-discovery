@@ -2,6 +2,8 @@ package com.monglife.discovery.app.gateway.global.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.monglife.core.utils.CommonUtil;
+import com.monglife.discovery.app.gateway.vo.TraceVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.Hints;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +25,30 @@ import java.util.Optional;
 public class HttpUtils {
     
     private final ObjectMapper objectMapper;
+
+    public TraceVo increaseAndGetTrace(ServerWebExchange exchange) {
+
+        String traceId = exchange.getAttributeOrDefault("traceId", CommonUtil.randomId());
+        int traceOffset = Integer.parseInt(exchange.getAttributeOrDefault("traceOffset", "-1")) + 1;
+
+        exchange.getAttributes().put("traceId", traceId);
+        exchange.getAttributes().put("traceOffset", String.valueOf(traceOffset));
+        exchange.getRequest().mutate().header("X-Trace-Id", URLEncoder.encode(traceId, StandardCharsets.UTF_8)).build();
+
+        return TraceVo.builder()
+                .traceId(traceId)
+                .traceOffset(traceOffset)
+                .build();
+    }
+
+    public void decreaseTraceOffset(ServerWebExchange exchange) {
+
+        String traceOffset = exchange.getAttribute("traceOffset");
+
+        if (traceOffset != null && !traceOffset.isBlank() && traceOffset.matches("-?\\d+")) {
+            exchange.getAttributes().put("traceOffset", String.valueOf(Integer.parseInt(traceOffset) - 1));
+        }
+    }
 
     public Optional<String> getHeader(ServerHttpRequest request, String key) {
         List<String> values = request.getHeaders().get(key);

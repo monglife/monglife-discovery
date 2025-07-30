@@ -23,7 +23,7 @@ public class UserDeviceService {
         DeviceVo deviceVo = deviceService.createDevice(deviceId, deviceName, fcmToken);
 
         // FCM 토큰 갱신
-        if (deviceVo.getFcmToken().isBlank()) {
+        if (deviceVo.getFcmToken().isBlank() || !deviceVo.getFcmToken().equals(fcmToken)) {
             deviceService.updateDevice(deviceId, fcmToken);
         }
     }

@@ -10,6 +10,8 @@ public class TokenVo {
 
     private final String refreshToken;
 
+    private final String accessToken;
+
     private final String deviceId;
 
     private final Long accountId;
@@ -23,8 +25,9 @@ public class TokenVo {
     private final Long expiration;
 
     @Builder
-    public TokenVo(String refreshToken, String deviceId, Long accountId, String appPackageName, String buildVersion, LocalDateTime createdAt, Long expiration) {
+    public TokenVo(String refreshToken, String accessToken, String deviceId, Long accountId, String appPackageName, String buildVersion, LocalDateTime createdAt, Long expiration) {
         this.refreshToken = refreshToken;
+        this.accessToken = accessToken;
         this.deviceId = deviceId;
         this.accountId = accountId;
         this.appPackageName = appPackageName;

@@ -3,21 +3,17 @@ package com.monglife.discovery.app.common.auth.controller;
 import com.monglife.core.dto.response.ResponseDto;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
+import com.monglife.discovery.app.common.auth.dto.etc.*;
+import com.monglife.discovery.app.common.auth.dto.response.*;
 import com.monglife.discovery.app.common.userDevice.service.UserDeviceService;
-import com.monglife.discovery.app.common.auth.dto.etc.LoginDto;
-import com.monglife.discovery.app.common.auth.dto.etc.LogoutDto;
-import com.monglife.discovery.app.common.auth.dto.etc.ReissueDto;
-import com.monglife.discovery.app.common.auth.dto.etc.VerifyAccessTokenDto;
 import com.monglife.discovery.app.common.auth.dto.request.JoinRequestDto;
 import com.monglife.discovery.app.common.auth.dto.request.LoginRequestDto;
 import com.monglife.discovery.app.common.auth.dto.request.LogoutRequestDto;
 import com.monglife.discovery.app.common.auth.dto.request.ReissueRequestDto;
-import com.monglife.discovery.app.common.auth.dto.response.LoginResponseDto;
-import com.monglife.discovery.app.common.auth.dto.response.PassportDataResponseDto;
-import com.monglife.discovery.app.common.auth.dto.response.ReissueResponseDto;
-import com.monglife.discovery.app.common.auth.dto.response.ValidationAccessTokenResponseDto;
 import com.monglife.discovery.app.common.auth.enums.AuthResponse;
 import com.monglife.discovery.app.common.auth.service.AuthService;
+import com.monglife.module.common.logging.annotation.EntryLoggingPoint;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/public/auth")
 public class AuthController {
 
     private final AuthService authService;
@@ -39,8 +35,9 @@ public class AuthController {
      * @param joinRequestDto 회원 가입 정보 Dto
      * @return 성공 응답
      */
+    @EntryLoggingPoint
     @PostMapping("/join")
-    public ResponseEntity<ResponseDto<?>> join(@RequestBody JoinRequestDto joinRequestDto) {
+    public ResponseEntity<ResponseDto<?>> join(@Valid @RequestBody JoinRequestDto joinRequestDto) {
 
         String email = joinRequestDto.getEmail();
         String name = joinRequestDto.getName();
@@ -56,8 +53,9 @@ public class AuthController {
      * @param loginRequestDto 로그인 정보 Dto
      * @return 토큰 정보 Dto
      */
+    @EntryLoggingPoint
     @PostMapping("/login")
-    public ResponseEntity<ResponseDto<LoginResponseDto>> login(@RequestBody LoginRequestDto loginRequestDto) {
+    public ResponseEntity<ResponseDto<LoginResponseDto>> login(@Valid @RequestBody LoginRequestDto loginRequestDto) {
 
         String deviceId = loginRequestDto.getDeviceId();
         String email = loginRequestDto.getEmail();
@@ -81,12 +79,13 @@ public class AuthController {
     }
 
     /**
-     * 로그 아웃
+     * 로그아웃
      * @param logoutRequestDto 로그 아웃 정보 Dto
      * @return 성공 응답
      */
+    @EntryLoggingPoint
     @PostMapping("/logout")
-    public ResponseEntity<ResponseDto<?>> logout(@RequestBody LogoutRequestDto logoutRequestDto) {
+    public ResponseEntity<ResponseDto<?>> logout(@Valid @RequestBody LogoutRequestDto logoutRequestDto) {
 
         String refreshToken = logoutRequestDto.getRefreshToken();
 
@@ -103,8 +102,9 @@ public class AuthController {
      * @param reissueRequestDto 토큰 재발행 정보 Dto
      * @return 재발행 토큰 정보 Dto
      */
+    @EntryLoggingPoint
     @PostMapping("/reissue")
-    public ResponseEntity<ResponseDto<ReissueResponseDto>> reissue(@RequestBody ReissueRequestDto reissueRequestDto) {
+    public ResponseEntity<ResponseDto<ReissueResponseDto>> reissue(@Valid @RequestBody ReissueRequestDto reissueRequestDto) {
 
         String accessToken = reissueRequestDto.getAccessToken();
         String refreshToken = reissueRequestDto.getRefreshToken();
@@ -120,20 +120,44 @@ public class AuthController {
     }
 
     /**
+     * 앱 버전 검증
+     * @param appPackageName 앱 패키지 명
+     * @param buildVersion 앱 빌드 버전
+     * @return 앱 빌드 버전 검증 응답 Dto
+     */
+    @EntryLoggingPoint
+    @GetMapping("/verify/version")
+    public ResponseEntity<ResponseDto<VerifyBuildVersionResponseDto>> verifyBuildVersion(
+            @RequestParam("appPackageName") @NotBlank String appPackageName,
+            @RequestParam("buildVersion") @NotBlank String buildVersion
+    ) {
+        VerifyBuildVersionDto verifyBuildVersionDto = authService.verifyBuildVersion(appPackageName, buildVersion);
+
+        VerifyBuildVersionResponseDto verifyBuildVersionResponseDto = VerifyBuildVersionResponseDto.builder()
+                .appPackageName(verifyBuildVersionDto.getAppPackageName())
+                .buildVersion(verifyBuildVersionDto.getBuildVersion())
+                .mustUpdate(verifyBuildVersionDto.getMustUpdate())
+                .build();
+
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_VERIFY_BUILD_VERSION.toResponseDto(verifyBuildVersionResponseDto));
+    }
+
+    /**
      * 엑세스 토큰 검증
      * @param accessToken 엑세스 토큰
      * @return 엑세스 토큰을 포함한 성공 응답 Dto
      */
+    @EntryLoggingPoint
     @GetMapping("/verify/accessToken")
-    public ResponseEntity<ResponseDto<ValidationAccessTokenResponseDto>> verifyAccessToken(@RequestParam("accessToken") @NotBlank String accessToken) {
+    public ResponseEntity<ResponseDto<VerifyAccessTokenResponseDto>> verifyAccessToken(@RequestParam("accessToken") @NotBlank String accessToken) {
 
         VerifyAccessTokenDto verifyAccessTokenDto = authService.verifyAccessToken(accessToken);
 
-        ValidationAccessTokenResponseDto validationAccessTokenResponseDto = ValidationAccessTokenResponseDto.builder()
+        VerifyAccessTokenResponseDto verifyAccessTokenResponseDto = VerifyAccessTokenResponseDto.builder()
                 .accessToken(verifyAccessTokenDto.getAccessToken())
                 .build();
 
-        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_VALIDATION_TOKEN.toResponseDto(validationAccessTokenResponseDto));
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_VERIFY_TOKEN.toResponseDto(verifyAccessTokenResponseDto));
     }
 
     /**
@@ -141,6 +165,7 @@ public class AuthController {
      * @param accessToken 엑세스 토큰
      * @return Passport 데이터 Dto
      */
+    @EntryLoggingPoint
     @GetMapping("/passport")
     public ResponseEntity<ResponseDto<PassportDataResponseDto>> getPassportData(@RequestParam("accessToken") @NotBlank String accessToken) {
 

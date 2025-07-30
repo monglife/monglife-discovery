@@ -1,39 +1,34 @@
 dependencies {
+    // client layer
+    implementation project(":clients:monglife-discovery-client-fcm")
+
+    // domain layer
+    implementation project(":domains:monglife-discovery-domain-account")
+    implementation project(":domains:monglife-discovery-domain-device")
+
+    // monglife-logging
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}"
+    implementation "net.logstash.logback:logstash-logback-encoder:${logstashVersion}"
+
+    // modules-kafka
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-kafka:${monglifeModuleCommonVersion}"
+
+    // monglife-security
+    implementation "com.github.monglife.monglife-module-common:monglife-module-common-security:${monglifeModuleCommonVersion}"
+
     // spring
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+    implementation "org.springframework.boot:spring-boot-starter-validation"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
 
     // lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     // jwt
-    implementation group: 'io.jsonwebtoken', name: 'jjwt-api', version: '0.11.5'
-    runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-impl', version: '0.11.5'
-    runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.11.5'
-
-    // prometheus
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-
-    // modules
-    implementation 'com.github.monglife.monglife-module-common:monglife-module-common-kafka:1.0.5'
-
-    // clients
-    implementation project(':clients:monglife-discovery-client-fcm')
-
-    // domains
-    implementation project(':domains:monglife-discovery-domain-account')
-    implementation project(':domains:monglife-discovery-domain-device')
-}
-
-tasks.register('copyPrivate', Copy) {
-    copy {
-        from '../../configs/apps/monglife-discovery-app-common-api/'
-        include 'application*.yml'
-        into 'src/main/resources'
-    }
+    implementation group: "io.jsonwebtoken", name: "jjwt-api", version: "0.11.5"
+    runtimeOnly group: "io.jsonwebtoken", name: "jjwt-impl", version: "0.11.5"
+    runtimeOnly group: "io.jsonwebtoken", name: "jjwt-jackson", version: "0.11.5"
 }

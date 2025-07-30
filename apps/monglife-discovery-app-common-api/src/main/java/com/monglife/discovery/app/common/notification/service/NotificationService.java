@@ -33,8 +33,7 @@ public class NotificationService {
 
         String title = sendNotificationDto.getTitle();
         String body = sendNotificationDto.getBody();
-        Boolean isAppForegroundMessage = sendNotificationDto.getIsAppForegroundMessage();
 
-        fcmService.sendPush(tokens, title, body, isAppForegroundMessage);
+        fcmService.sendPush(tokens, title, body);
     }
 }

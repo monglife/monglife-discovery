@@ -24,6 +24,7 @@ public class TokenService {
     public void createToken(TokenVo tokenVo) {
         tokenRepository.save(TokenEntity.builder()
                 .refreshToken(tokenVo.getRefreshToken())
+                .accessToken(tokenVo.getAccessToken())
                 .deviceId(tokenVo.getDeviceId())
                 .accountId(tokenVo.getAccountId())
                 .appPackageName(tokenVo.getAppPackageName())
@@ -31,6 +32,29 @@ public class TokenService {
                 .createdAt(tokenVo.getCreatedAt())
                 .expiration(tokenVo.getExpiration())
                 .build());
+    }
+
+    /**
+     * 토큰 정보 존재 여부 확인
+     */
+    @Transactional
+    public boolean isExistsToken(String accessToken) {
+        return tokenRepository.findByAccessToken(accessToken).isPresent();
+    }
+
+    /**
+     * 엑세스 토큰 수정
+     * @param tokenVo 토큰 정보 Vo
+     */
+    @Transactional
+    public void updateToken(TokenVo tokenVo) {
+
+        TokenEntity tokenEntity = tokenRepository.findByAccessToken(tokenVo.getAccessToken())
+                        .orElseThrow(() -> new NotExistsTokenException(tokenVo.getAccessToken()));
+
+        tokenEntity.update(tokenVo);
+
+        tokenRepository.save(tokenEntity);
     }
 
     /**

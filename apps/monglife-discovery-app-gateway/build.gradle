@@ -1,26 +1,20 @@
 dependencies {
-    // spring
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    // monglife-logging
+    implementation("com.github.monglife.monglife-module-common:monglife-module-common-logging:${monglifeModuleCommonVersion}") {
+        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-hibernate6'
+    }
+    implementation "net.logstash.logback:logstash-logback-encoder:${logstashVersion}"
 
-    // lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
+    // spring
+    implementation "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client"
+    implementation "org.springframework.cloud:spring-cloud-starter-gateway"
 
     // gateway
-    implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j'
-    implementation 'io.github.resilience4j:resilience4j-bom:1.7.0'
+    implementation "org.springframework.cloud:spring-cloud-starter-circuitbreaker-resilience4j"
+    implementation "io.github.resilience4j:resilience4j-bom:1.7.0"
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
 
-    // prometheus
-    implementation 'org.springframework.boot:spring-boot-starter-actuator:3.2.1'
-    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
-}
-
-tasks.register('copyPrivate', Copy) {
-    copy {
-        from '../../configs/apps/monglife-discovery-app-gateway/'
-        include 'application*.yml'
-        into 'src/main/resources'
-    }
+    // lombok
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 }

@@ -3,11 +3,8 @@ package com.monglife.discovery.app.common.auth.service;
 import com.monglife.core.enums.role.RoleCode;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
-import com.monglife.discovery.app.common.auth.dto.etc.LoginDto;
-import com.monglife.discovery.app.common.auth.dto.etc.LogoutDto;
-import com.monglife.discovery.app.common.auth.dto.etc.ReissueDto;
-import com.monglife.discovery.app.common.auth.dto.etc.VerifyAccessTokenDto;
-import com.monglife.discovery.app.common.auth.exception.NeedAppUpdateException;
+import com.monglife.discovery.app.common.auth.dto.etc.*;
+import com.monglife.discovery.app.common.auth.exception.NeedUpdateAppException;
 import com.monglife.discovery.app.common.auth.exception.TokenExpiredException;
 import com.monglife.discovery.app.common.global.provider.TokenProvider;
 import com.monglife.discovery.domain.account.service.AccountService;
@@ -19,13 +16,11 @@ import com.monglife.discovery.domain.account.vo.TokenVo;
 import com.monglife.discovery.domain.device.service.AppVersionService;
 import com.monglife.discovery.domain.device.vo.AppVersionVo;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -72,12 +67,10 @@ public class AuthService {
     @Transactional
     public LoginDto login(String deviceId, String socialAccountId, String email, String appPackageName, String deviceName, String buildVersion) {
 
-        AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
-
-        // 앱 업데이트 여부 확인
-        if (appVersionVo.getMustUpdate()) {
-            throw new NeedAppUpdateException();
-        }
+        // 앱 버전 체크
+        if (appVersionService.getAppVersion(appPackageName, buildVersion).getMustUpdate()) {
+            throw new NeedUpdateAppException();
+        };
 
         // 회원 조회
         AccountVo accountVo = accountService.getAccount(email);
@@ -90,7 +83,7 @@ public class AuthService {
         // 존재 세션 삭제
         tokenService.deleteToken(accountVo.getAccountId(), deviceId);
 
-        //  RefreshToken 발급
+        // RefreshToken 발급
         String refreshToken = tokenProvider.generateRefreshToken();
 
         // AccessToken 발급
@@ -99,6 +92,7 @@ public class AuthService {
         // 새로운 세션 등록
         tokenService.createToken(TokenVo.builder()
                 .refreshToken(refreshToken)
+                .accessToken(accessToken)
                 .deviceId(deviceId)
                 .accountId(accountVo.getAccountId())
                 .appPackageName(appPackageName)
@@ -149,6 +143,10 @@ public class AuthService {
     @Transactional
     public ReissueDto reissue(String accessToken, String refreshToken) {
 
+        if (tokenProvider.isTokenExpired(refreshToken)) {
+            throw new TokenExpiredException(refreshToken);
+        }
+
         // 존재 세션 삭제
         TokenVo tokenVo = tokenService.deleteToken(refreshToken);
 
@@ -165,6 +163,7 @@ public class AuthService {
         // 새로운 세션 등록
         tokenService.createToken(TokenVo.builder()
                 .refreshToken(newRefreshToken)
+                .accessToken(newAccessToken)
                 .deviceId(tokenVo.getDeviceId())
                 .accountId(tokenVo.getAccountId())
                 .appPackageName(tokenVo.getAppPackageName())
@@ -191,8 +190,30 @@ public class AuthService {
             throw new TokenExpiredException(accessToken);
         }
 
+        if (!tokenService.isExistsToken(accessToken)) {
+            throw new TokenExpiredException(accessToken);
+        }
+
         return VerifyAccessTokenDto.builder()
                 .accessToken(accessToken)
+                .build();
+    }
+
+    /**
+     * BuildVersion 검증
+     * @param appPackageName 앱 패키지 명
+     * @param buildVersion 빌드 버전
+     * @return 검증 정보 Dto
+     */
+    @Transactional(readOnly = true)
+    public VerifyBuildVersionDto verifyBuildVersion(String appPackageName, String buildVersion) {
+
+        AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
+
+        return VerifyBuildVersionDto.builder()
+                .appPackageName(appVersionVo.getAppPackageName())
+                .buildVersion(appVersionVo.getBuildVersion())
+                .mustUpdate(appVersionVo.getMustUpdate())
                 .build();
     }
 
@@ -205,6 +226,10 @@ public class AuthService {
     public PassportDataAccountVo getPassportDataAccount(String accessToken) {
 
         if (tokenProvider.isTokenExpired(accessToken)) {
+            throw new TokenExpiredException(accessToken);
+        }
+
+        if (!tokenService.isExistsToken(accessToken)) {
             throw new TokenExpiredException(accessToken);
         }
 
@@ -234,6 +259,10 @@ public class AuthService {
     public PassportDataAppVersionVo getPassportDataAppVersion(String accessToken) {
 
         if (tokenProvider.isTokenExpired(accessToken)) {
+            throw new TokenExpiredException(accessToken);
+        }
+
+        if (!tokenService.isExistsToken(accessToken)) {
             throw new TokenExpiredException(accessToken);
         }
 
