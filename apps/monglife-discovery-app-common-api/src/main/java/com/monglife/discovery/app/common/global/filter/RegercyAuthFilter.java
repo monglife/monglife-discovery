@@ -23,7 +23,7 @@ public class RegercyAuthFilter implements Filter {
         String originalContextPath = httpRequest.getContextPath();
         String originalServletPath = httpRequest.getServletPath();
 
-        if (originalServletPath.startsWith("/auth")) {
+        if (originalServletPath.startsWith("/auth") || originalServletPath.startsWith("/userDevice")) {
             filterChain.doFilter(new HttpServletRequestWrapper(httpRequest) {
                 @Override
                 public String getRequestURI() {
