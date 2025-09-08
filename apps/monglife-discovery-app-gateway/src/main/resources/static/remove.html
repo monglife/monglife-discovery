@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mongs – 걸음 수로 키우는 펫</title>
+    <meta name="description" content="Mongs는 걸음 수로 성장하는 귀여운 펫과 함께 걷기 습관을 만드는 스마트워치 연동 헬스케어 게임입니다." />
+    <meta name="keywords" content="Mongs, 몽스, 걸음 수, 만보기, 펫, 헬스케어, 스마트워치, 걷기 게임" />
+    <meta property="og:title" content="Mongs – 걸음 수로 키우는 펫" />
+    <meta property="og:description" content="걸을수록 펫이 성장하는 웰니스 게임. 스마트워치와 함께 더 재미있게 걷기!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://www.monglife.cloud" />
+    <link rel="icon" href="favicon.ico" />
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 보조 애니메이션 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-slate-50 to-white text-slate-800">
+<!-- 헤더 -->
+<header class="sticky top-0 z-50 backdrop-blur bg-white/70 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <a href="/index.html" class="flex items-center gap-2 font-semibold">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl text-white">
+                <img src="favicon.ico" alt="mongs play 1">
+            </span>
+            <span class="text-slate-900">Mongs</span>
+        </a>
+        <a href="https://play.google.com/store/apps/details?id=com.mongs.wear" class="ml-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm hover:opacity-90">다운로드</a>
+    </div>
+</header>
+
+<section class="py-16 border-y border-slate-200 bg-slate-50">
+    <div class="max-w-6xl mx-auto px-4">
+        <div>
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                Mongs에서 정보 삭제
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                Mongs에서 개인정보와 게임 데이터를 삭제하고 싶은 때가 있습니다. 사용자가 요청 시 Mongs는 사용자의 계정과 같은 개인정보와 게임 데이터를 삭제할 수 있습니다. 첫 로그인 직후 부터 1년간 보관이 되며, 게임을 진행하지 않는 시점으로 부터 1년이 경과하면 데이터를 삭제합니다.
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                Mongs에서 삭제하는 개인 정보
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                개인정보 삭제 요청 시, 삭제하는 데이터는 아래와 같습니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                ○ 게임 로그인 시 수집한 Google OAuth의 email, 이름 데이터
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 게임 진행과 관련된 캐릭터 데이터
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 수집한 사용자의 생체 정보 데이터
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                개인 정보 삭제 요청 방법
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                cs.monglife@gmail.com 로 메일을 통해 요청 주시면 확인하는 즉시 삭제 해드립니다.
+            </p>
+
+            <p class="mt-5 text-lg text-slate-600">
+                ▶ 개인정보 보호책임자<br>
+                ○ 성명 : 박상민<br>
+                ○ 직책 : 개발자<br>
+                ○ 연락처 : cs.monglife@@gmail.com
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- 푸터 -->
+<footer class="py-10 border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-slate-500">© <span id="year"></span> Mongs. All rights reserved.</p>
+        <div class="flex items-center gap-4 text-sm">
+            <a href="personal.html" class="hover:text-slate-900">개인정보처리방침</a>
+            <a href="remove.html" class="hover:text-slate-900">개인정보삭제요청</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

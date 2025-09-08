@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mongs – 걸음 수로 키우는 펫</title>
+    <meta name="description" content="Mongs는 걸음 수로 성장하는 귀여운 펫과 함께 걷기 습관을 만드는 스마트워치 연동 헬스케어 게임입니다." />
+    <meta name="keywords" content="Mongs, 몽스, 걸음 수, 만보기, 펫, 헬스케어, 스마트워치, 걷기 게임" />
+    <meta property="og:title" content="Mongs – 걸음 수로 키우는 펫" />
+    <meta property="og:description" content="걸을수록 펫이 성장하는 웰니스 게임. 스마트워치와 함께 더 재미있게 걷기!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://www.monglife.cloud" />
+    <link rel="icon" href="favicon.ico" />
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 보조 애니메이션 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-slate-50 to-white text-slate-800">
+<!-- 헤더 -->
+<header class="sticky top-0 z-50 backdrop-blur bg-white/70 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <a href="/index.html" class="flex items-center gap-2 font-semibold">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl text-white">
+                <img src="favicon.ico" alt="mongs play 1">
+            </span>
+            <span class="text-slate-900">Mongs</span>
+        </a>
+        <a href="https://play.google.com/store/apps/details?id=com.mongs.wear" class="ml-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm hover:opacity-90">다운로드</a>
+    </div>
+</header>
+
+<!-- 히어로 -->
+<section class="py-16 border-y border-slate-200 bg-slate-50">
+    <div class="max-w-6xl mx-auto px-4">
+        <div>
+            <p class="mt-5 text-lg text-slate-600">
+                &lt; mongs &gt;('mongs'이하 'mongs')은(는) 「개인정보 보호법」 제30조에 따라 정보주체의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                ○ 이 개인정보처리방침은 2025년 2월 17부터 적용됩니다.
+            </p>
+
+            <h3 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제1조(개인정보의 처리 목적)
+            </h3>
+            <p class="mt-5 text-lg text-slate-600">
+                < mongs &gt;('mongs'이하 'mongs')은(는) 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않으며 이용 목적이 변경되는 경우에는 「개인정보 보호법」 제18조에 따라 별도의 동의를 받는 등 필요한 조치를 이행할 예정입니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                홈페이지 회원가입 및 관리
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 회원제 서비스 제공에 따른 본인 식별·인증, 회원자격 유지·관리 목적으로 개인정보를 처리합니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                ○ 재화 또는 서비스 제공
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 서비스 제공, 본인인증을 목적으로 개인정보를 처리합니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                ○ 위치 정보 활용
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 사용자의 위치 정보를 활용하여 걸음 수 기반 게임 서비스를 제공하고, 사용자의 활동 데이터를 최적화하여 보다 나은 서비스를 제공합니다.
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제2조(개인정보의 처리 및 보유 기간)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                ① &lt; mongs &gt;은(는) 법령에 따른 개인정보 보유·이용기간 또는 정보주체로부터 개인정보를 수집 시에 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                ② 각각의 개인정보 처리 및 보유 기간은 다음과 같습니다.
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                1. 홈페이지 회원가입 및 관리: 90일
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                2. 재화 또는 서비스 제공: 90일
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                3. 위치 정보 활용: 실시간으로 처리되며 별도 저장되지 않음. 단, 서비스 최적화를 위해 익명화된 데이터로 일정 기간 보유될 수 있음.
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제3조(처리하는 개인정보의 항목)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                ① &lt; mongs &gt;은(는) 다음의 개인정보 항목을 처리하고 있습니다.
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                1. 홈페이지 회원가입 및 관리: 서비스 이용 기록
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                2. 재화 또는 서비스 제공: 서비스 이용 기록
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                3. 위치 정보 활용: 사용자의 위치 데이터 (GPS, Wi-Fi, 기기 센서 정보)
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제4조(개인정보의 파기절차 및 파기방법)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                ① 위치 정보는 서비스 제공을 위해 일시적으로 사용되며, 지속적으로 저장되지 않습니다. 단, 익명화된 데이터는 서비스 개선을 위해 일정 기간 보유될 수 있습니다.
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제5조(정보주체와 법정대리인의 권리·의무 및 그 행사방법에 관한 사항)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                ① 정보주체는 위치 정보 제공을 언제든지 거부할 수 있으며, 단말기 설정에서 위치 서비스 사용을 비활성화할 수 있습니다.
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제6조(개인정보의 안전성 확보조치에 관한 사항)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                &lt; mongs &gt;은(는) 개인정보의 안전성 확보를 위해 다음과 같은 조치를 취하고 있습니다.
+            </p>
+            <p class="mt-5 text-lg text-slate-600">
+                ○ 개인정보 암호화
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 접근 권한 관리
+            </p>
+            <p class="mt-2 text-lg text-slate-600">
+                ○ 보안 업데이트 및 네트워크 보호
+            </p>
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제7조(개인정보 보호책임자에 관한 사항)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                ▶ 개인정보 보호책임자<br>
+                ○ 성명 : 박상민<br>
+                ○ 직책 : 개발자<br>
+                ○ 연락처 : cs.monglife@@gmail.com
+            </p>
+
+
+            <h1 class="mt-5 text-3xl md:text-3xl font-extrabold leading-tight tracking-tight text-slate-900">
+                제8조(개인정보 처리방침 변경)
+            </h1>
+            <p class="mt-5 text-lg text-slate-600">
+                ① 이 개인정보처리방침은 2025년 2월 17부터 적용됩니다.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- 푸터 -->
+<footer class="py-10 border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-slate-500">© <span id="year"></span> Mongs. All rights reserved.</p>
+        <div class="flex items-center gap-4 text-sm">
+            <a href="personal.html" class="hover:text-slate-900">개인정보처리방침</a>
+            <a href="remove.html" class="hover:text-slate-900">개인정보삭제요청</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
