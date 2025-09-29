@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - release
+      - develop
 permissions:
   contents: read
   checks: write
@@ -10,10 +11,10 @@ permissions:
 env:
   common-path: ./apps/monglife-discovery-app-common-api
   gateway-path: ./apps/monglife-discovery-app-gateway
-  common: monglife-discovery-common-api
+  common: monglife-discovery-common
   gateway: monglife-discovery-gateway
-  service-path: ~/service/discovery
-  service-script: ~/service/discovery/run.sh
+  docker-path: ~/docker
+  service-script: ~/batch/service.sh
 jobs:
   # 빌드 및 배포
   discovery-deploy:
@@ -51,17 +52,17 @@ jobs:
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
       # 배포 파일 원격 복사
-      - name: Discovery Common API 배포 파일 STAGE 서버로 전송
+      - name: Discovery Common API 배포 파일 Product 서버로 전송
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           source: "${{ env.common-path }}/build/libs/*.jar"
-          target: "${{ env.service-path }}/${{ env.common }}"
+          target: "${{ env.docker-path }}"
           strip_components: 4
-          timeout: '300s'
+          timeout: '120s'
       # 배포 스크립트 실행
       - name: Discovery Common API 서비스 실행
         uses: appleboy/ssh-action@v1
@@ -69,21 +70,21 @@ jobs:
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
-            sh ${{ env.service-script }} ${{ env.common }} ${{ env.service-path }}/${{ env.common }}
+            bash ${{ env.service-script }} restart ${{ env.gateway }}
       # 배포 파일 원격 복사
-      - name: Discovery Gateway 배포 파일 STAGE 서버로 전송
+      - name: Discovery Gateway 배포 파일 Product 서버로 전송
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           source: "${{ env.gateway-path }}/build/libs/*.jar"
-          target: "${{ env.service-path }}/${{ env.gateway }}"
+          target: "${{ env.docker-path }}"
           strip_components: 4
-          timeout: '300s'
+          timeout: '120s'
       # 배포 스크립트 실행
       - name: Discovery Gateway 서비스 실행
         uses: appleboy/ssh-action@v1
@@ -91,6 +92,6 @@ jobs:
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_KEY }}
           script: |
-            sh ${{ env.service-script }} ${{ env.gateway }} ${{ env.service-path }}/${{ env.gateway }}
+            bash ${{ env.service-script }} restart ${{ env.gateway }}
