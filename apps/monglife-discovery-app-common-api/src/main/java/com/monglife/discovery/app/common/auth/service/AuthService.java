@@ -80,21 +80,35 @@ public class AuthService {
             accountService.updateSocialAccountId(accountVo.getEmail(), socialAccountId);
         }
 
+        return issueLogin(accountVo.getAccountId(), deviceId, appPackageName, deviceName, buildVersion);
+    }
+
+    /**
+     * 세션 발급 (기존 세션 삭제 -> 토큰 발급 -> 세션 등록 -> 로그인 카운트 증가)
+     * @param accountId 회원 ID
+     * @param deviceId 기기 ID
+     * @param appPackageName 앱 패키지 명
+     * @param deviceName 기기명
+     * @param buildVersion 앱 빌드 버전
+     * @return 로그인 정보 Dto
+     */
+    private LoginDto issueLogin(Long accountId, String deviceId, String appPackageName, String deviceName, String buildVersion) {
+
         // 존재 세션 삭제
-        tokenService.deleteToken(accountVo.getAccountId(), deviceId);
+        tokenService.deleteToken(accountId, deviceId);
 
         // RefreshToken 발급
         String refreshToken = tokenProvider.generateRefreshToken();
 
         // AccessToken 발급
-        String accessToken = tokenProvider.generateAccessToken(accountVo.getAccountId(), deviceId, appPackageName, buildVersion);
+        String accessToken = tokenProvider.generateAccessToken(accountId, deviceId, appPackageName, buildVersion);
 
         // 새로운 세션 등록
         tokenService.createToken(TokenVo.builder()
                 .refreshToken(refreshToken)
                 .accessToken(accessToken)
                 .deviceId(deviceId)
-                .accountId(accountVo.getAccountId())
+                .accountId(accountId)
                 .appPackageName(appPackageName)
                 .buildVersion(buildVersion)
                 .createdAt(LocalDateTime.now())
@@ -103,7 +117,7 @@ public class AuthService {
 
         // 로그인 카운트 1 증가
         loginHistoryService.patchLoginHistory(LoginHistoryVo.builder()
-                .accountId(accountVo.getAccountId())
+                .accountId(accountId)
                 .deviceId(deviceId)
                 .appPackageName(appPackageName)
                 .deviceName(deviceName)
@@ -111,7 +125,7 @@ public class AuthService {
                 .build());
 
         return LoginDto.builder()
-                .accountId(accountVo.getAccountId())
+                .accountId(accountId)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
