@@ -1,6 +1,5 @@
 package com.monglife.discovery.app.common.auth.service;
 
-import com.monglife.core.enums.role.RoleCode;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
 import com.monglife.discovery.app.common.auth.dto.etc.*;
@@ -40,15 +39,16 @@ public class AuthService {
      * @param email 이메일
      * @param name 이름
      * @param socialAccountId 구글 계정 ID
+     * @param role 권한
      */
     @Transactional
-    public void join(String email, String name, String socialAccountId) {
+    public void join(String email, String name, String socialAccountId, String role) {
 
         AccountVo accountVo = AccountVo.builder()
                 .email(email)
                 .name(name)
                 .socialAccountId(socialAccountId)
-                .role(RoleCode.NORMAL.getRole())
+                .role(role)
                 .build();
 
         accountService.createAccount(accountVo);
@@ -70,12 +70,12 @@ public class AuthService {
         // 앱 버전 체크
         if (appVersionService.getAppVersion(appPackageName, buildVersion).getMustUpdate()) {
             throw new NeedUpdateAppException();
-        };
+        }
 
         // 회원 조회
         AccountVo accountVo = accountService.getAccount(email);
 
-        // 소셜 로그인 ID 업데이트 (이전 사용자)
+        // 소셜 로그인 ID 업데 이트 (이전 사용자)
         if (accountVo.getSocialAccountId().isBlank()) {
             accountService.updateSocialAccountId(accountVo.getEmail(), socialAccountId);
         }
