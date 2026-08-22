@@ -76,7 +76,7 @@ public class AuthService {
         AccountVo accountVo = accountService.getAccount(email);
 
         // 소셜 로그인 ID 업데 이트 (이전 사용자)
-        if (accountVo.getSocialAccountId().isBlank()) {
+        if (accountVo.getSocialAccountId() == null || accountVo.getSocialAccountId().isBlank()) {
             accountService.updateSocialAccountId(accountVo.getEmail(), socialAccountId);
         }
 

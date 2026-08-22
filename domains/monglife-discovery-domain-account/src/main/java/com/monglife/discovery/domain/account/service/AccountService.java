@@ -82,7 +82,7 @@ public class AccountService {
     @Transactional
     public void updateSocialAccountId(String email, String socialAccountId) {
 
-        AccountEntity accountEntity = accountRepository.findBySocialAccountId(email)
+        AccountEntity accountEntity = accountRepository.findByEmail(email)
                 .orElseThrow(NotExistsAccountException::new);
 
         accountEntity.updateSocialAccountId(socialAccountId);
