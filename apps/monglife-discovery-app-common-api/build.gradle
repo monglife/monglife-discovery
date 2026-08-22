@@ -31,4 +31,8 @@ dependencies {
     implementation group: "io.jsonwebtoken", name: "jjwt-api", version: "0.11.5"
     runtimeOnly group: "io.jsonwebtoken", name: "jjwt-impl", version: "0.11.5"
     runtimeOnly group: "io.jsonwebtoken", name: "jjwt-jackson", version: "0.11.5"
+
+    // google id token
+    // firebase-admin 9.2.0 이 google-api-client-bom 2.2.0 을 import 하므로 같은 버전으로 고정한다
+    implementation "com.google.api-client:google-api-client:2.2.0"
 }
