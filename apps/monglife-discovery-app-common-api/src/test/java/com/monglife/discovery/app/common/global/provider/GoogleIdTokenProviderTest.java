@@ -12,8 +12,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -152,6 +156,38 @@ class GoogleIdTokenProviderTest {
         given(googleIdTokenVerifier.verify(ID_TOKEN)).willThrow(new IllegalArgumentException("malformed"));
 
         assertThatThrownBy(() -> googleIdTokenProvider.verify(ID_TOKEN))
+                .isInstanceOf(InvalidIdTokenException.class);
+    }
+
+    @Test
+    @DisplayName("검증기가 NPE 를 던져도 500 이 아니라 InvalidIdTokenException 이어야 한다")
+    void verify_npeFromVerifier() throws Exception {
+
+        given(googleIdTokenVerifier.verify(ID_TOKEN)).willThrow(new NullPointerException());
+
+        assertThatThrownBy(() -> googleIdTokenProvider.verify(ID_TOKEN))
+                .isInstanceOf(InvalidIdTokenException.class);
+    }
+
+    /**
+     * 실제 GoogleIdTokenVerifier 로 재현하는 회귀 테스트.
+     * iss/exp 클레임이 없는 토큰은 서명 검증(네트워크) 이전 단계에서 터지므로 오프라인에서 돈다.
+     * 이 케이스가 운영에서 500 을 냈다.
+     */
+    @Test
+    @DisplayName("회귀: 클레임이 빠진 토큰(alg=none)을 실제 검증기에 넣어도 500 이 아니다")
+    void verify_realVerifier_missingClaims() {
+
+        GoogleIdTokenVerifier realVerifier = new GoogleIdTokenVerifier.Builder(
+                new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                .setAudience(List.of("47490513860-lmo501flnou72fc7q5kq0ajfii6dpieb.apps.googleusercontent.com"))
+                .setIssuers(List.of("accounts.google.com", "https://accounts.google.com"))
+                .build();
+
+        GoogleIdTokenProvider provider = new GoogleIdTokenProvider(realVerifier);
+
+        // {"alg":"none"}.{}. — 헤더/페이로드는 파싱되지만 iss/aud/exp 가 없다
+        assertThatThrownBy(() -> provider.verify("eyJhbGciOiJub25lIn0.e30."))
                 .isInstanceOf(InvalidIdTokenException.class);
     }
 }

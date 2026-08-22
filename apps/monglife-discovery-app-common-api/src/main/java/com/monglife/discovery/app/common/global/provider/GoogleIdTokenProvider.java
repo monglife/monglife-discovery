@@ -33,8 +33,11 @@ public class GoogleIdTokenProvider {
         } catch (GeneralSecurityException | IOException e) {
             // 공개키 fetch 실패 등 서버 측 일시 장애. "토큰이 잘못됨" 과 구분한다
             throw new IdTokenVerifyFailedException();
-        } catch (IllegalArgumentException e) {
-            // 파싱 불가한 토큰
+        } catch (RuntimeException e) {
+            // 신뢰할 수 없는 입력을 파싱하는 구간이라 검증기가 던지는 런타임 예외는
+            // 전부 "토큰이 잘못됨" 으로 본다. 클레임이 빠진 토큰에서 검증기 내부가
+            // List.of(...).contains(null) 이나 null 언박싱으로 NPE 를 내기 때문에
+            // IllegalArgumentException 만 잡으면 500 이 나간다.
             throw new InvalidIdTokenException();
         }
 
