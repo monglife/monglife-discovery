@@ -29,10 +29,6 @@ subprojects {
         maven { url "https://jitpack.io" }
     }
 
-    java {
-        sourceCompatibility = JavaVersion.VERSION_17
-    }
-
     tasks.register("copyPrivate", DefaultTask) {
 
         def configPath = "../../configs/properties"

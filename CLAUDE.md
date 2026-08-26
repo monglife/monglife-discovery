@@ -84,6 +84,14 @@ git add configs && git commit -m "chore: configs 서브모듈 갱신"
 `copyPrivate` 는 CI/CD 워크플로가 빌드 전에 실행한다. 로컬에서 처음 빌드하거나 서브모듈을 갱신한 뒤에는
 직접 한 번 돌려야 한다.
 
+자바 버전은 `apps` / `domains` / `clients` 각 `build.gradle` 의 `subprojects` 에 선언한 **toolchain
+(17)** 이 결정한다. 실행 JDK 가 21 이어도 17 바이트코드가 나온다. 배포 이미지가 `eclipse-temurin:17-jre`
+라 21 로 컴파일되면 `UnsupportedClassVersionError` 로 기동에 실패한다.
+
+> 루트 `build.gradle` 의 `subprojects` 안에서는 `java { }` 를 쓸 수 없다. 그 시점엔 자바 플러그인이
+> 서브프로젝트에 아직 적용되지 않아 Groovy 가 **owner(루트 프로젝트)** 로 폴백하고, 에러 없이 조용히
+> 루트만 설정된다. 실제로 이 함정 때문에 `sourceCompatibility = 17` 이 오래 무시되고 있었다.
+
 테스트는 현재 `apps/monglife-discovery-app-common-api/src/test` 에만 있다. 다른 모듈에 테스트를
 추가한다면 **그 모듈 `build.gradle` 에 `useJUnitPlatform()` 을 넣어야 한다.** spring-boot 플러그인이
 자동으로 넣어주지 않아, 없으면 **테스트가 0개 실행되고도 `BUILD SUCCESSFUL`** 이 난다.
@@ -118,6 +126,25 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 | `develop` | `ci-common` / `ci-gateway` / `ci-eureka` | 빌드·테스트 |
 | `stage` | `cd-stg` | STAGE 서버 배포 |
 | `release` | `cd-prd` | 운영 배포 |
+
+### STAGE (`cd-stg`)
+
+빌드 → `~/docker` 로 전송 → `docker compose up -d --build <서비스>` 다. 스크립트(`run.sh`/`service.sh`)를
+서버에 두지 않고 워크플로가 compose 를 직접 호출한다.
+
+```
+~/docker/
+  .env                     ← 서버에서만 관리. 워크플로가 전송하지 않는다
+  docker-compose.yml       ┐
+  spring-boot-docker-file  ├ configs/docker/stg 에서 워크플로가 전송
+  .dockerignore            ┘
+  monglife-discovery-app-{eureka,gateway,common-api}.jar
+```
+
+- 시크릿은 GitHub `stage` Environment 에 둔다: `HOST` `PORT` `USERNAME` `PASSWORD` `ACTION_TOKEN`.
+- **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
+  기동이 깨진다. 워크플로가 기동 전에 필수 키를 검사하니, compose 변수를 늘리면 그 목록도 함께 늘린다.
+- MySQL / Redis / Kafka 는 컨테이너가 아니라 외부 호스트다(`.env` 의 `*_HOST`).
 
 배포 순서는 **configs 푸시 → 서브모듈 포인터 커밋 → 코드 푸시** 다. 롤백할 때는 반대로 **코드부터**
 되돌린다. 코드를 되돌리면 configs 에 남은 키는 잉여값일 뿐이지만, configs 만 되돌리고 코드를 남기면
