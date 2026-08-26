@@ -11,10 +11,10 @@ permissions:
   checks: write
 
 env:
-  # configs 서브모듈 안의 stg 배포 자산(docker-compose.yml, Dockerfile) 위치
-  compose_dir: configs/docker/stg/service/discovery
-  # STAGE 서버의 배포 디렉터리 (홈 기준)
-  service_path: service/discovery
+  # configs 서브모듈 안의 stg 배포 자산
+  compose_dir: configs/docker/stg
+  # STAGE 서버의 배포 디렉터리 (홈 기준). .env 의 DOCKER_FILE_DIR 과 같아야 한다.
+  remote_dir: docker
 
 jobs:
   discovery-deploy:
@@ -29,7 +29,6 @@ jobs:
           token: ${{ secrets.ACTION_TOKEN }}
           submodules: true
 
-      # Java 환경 설정
       - name: JDK 설정
         uses: actions/setup-java@v4
         with:
@@ -44,7 +43,8 @@ jobs:
       - name: 환경 설정 파일 로드
         run: ./gradlew copyPrivate
 
-      # 세 앱 모듈 빌드 (bootJar 이름은 <모듈명>.jar 로 고정돼 있다)
+      # 세 앱 모듈 빌드. bootJar 이름이 <모듈명>.jar 로 고정돼 있어
+      # .env 의 *_BIN_FILE 값과 그대로 맞는다.
       - name: Discovery 모듈 빌드
         run: |
           ./gradlew --no-daemon \
@@ -58,30 +58,26 @@ jobs:
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
-      # docker-compose.yml + 서비스별 Dockerfile + jar 을 서버 디렉터리 구조 그대로 모은다
+      # 서버 ~/docker 에 그대로 펼쳐질 평평한 디렉터리를 만든다. .env 는 포함하지 않는다.
       - name: 배포 산출물 구성
         run: |
           set -euo pipefail
-          rm -rf deploy
-          mkdir -p deploy
-          cp "${{ env.compose_dir }}/docker-compose.yml" deploy/
+          rm -rf deploy && mkdir -p deploy
 
-          # "<gradle 모듈명>:<compose 서비스명>"
-          for pair in \
-            "monglife-discovery-app-eureka:monglife-discovery-eureka" \
-            "monglife-discovery-app-gateway:monglife-discovery-gateway" \
-            "monglife-discovery-app-common-api:monglife-discovery-common-api"
+          cp "${{ env.compose_dir }}/docker-compose.yml"      deploy/
+          cp "${{ env.compose_dir }}/spring-boot-docker-file"  deploy/
+          cp "${{ env.compose_dir }}/.dockerignore"            deploy/
+
+          for module in monglife-discovery-app-eureka \
+                        monglife-discovery-app-gateway \
+                        monglife-discovery-app-common-api
           do
-            module="${pair%%:*}"
-            service="${pair##*:}"
-            mkdir -p "deploy/${service}"
-            cp "${{ env.compose_dir }}/${service}/Dockerfile" "deploy/${service}/"
-            cp "apps/${module}/build/libs/${module}.jar" "deploy/${service}/"
+            cp "apps/${module}/build/libs/${module}.jar" deploy/
           done
 
-          find deploy -type f -printf '%p\t%s\n'
+          ls -al deploy
 
-      # 배포 산출물 원격 복사 (deploy/ 한 겹만 벗겨 ~/service/discovery 아래로)
+      # deploy/ 한 겹만 벗겨 ~/docker 아래로 (.env 는 건드리지 않는다)
       - name: 배포 산출물 STAGE 서버로 전송
         uses: appleboy/scp-action@v1
         with:
@@ -89,13 +85,12 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          source: "deploy/*"
-          target: "~/${{ env.service_path }}"
+          source: "deploy/*,deploy/.dockerignore"
+          target: "~/${{ env.remote_dir }}"
           strip_components: 1
           overwrite: true
           timeout: '600s'
 
-      # docker compose 로 재빌드 + 기동
       - name: Discovery 서비스 기동
         uses: appleboy/ssh-action@v1
         with:
@@ -106,24 +101,44 @@ jobs:
           script_stop: true
           command_timeout: '20m'
           script: |
-            cd ~/${{ env.service_path }}
+            cd ~/${{ env.remote_dir }}
 
-            # compose 가 external 로 참조하는 네트워크 (없으면 up 이 실패한다)
-            for net in discovery-net storage-net; do
-              docker network inspect "$net" >/dev/null 2>&1 || docker network create "$net"
+            # .env 는 서버에서만 관리한다. 없으면 compose 가 빈 문자열로 치환해
+            # ":8761" 같은 잘못된 포트 매핑으로 조용히 깨지므로 여기서 끊는다.
+            if [ ! -f .env ]; then
+              echo "::error::~/${{ env.remote_dir }}/.env 가 없습니다. configs/docker/stg/.env.example 로 먼저 만드세요."
+              exit 1
+            fi
+
+            set -a
+            . ./.env
+            set +a
+
+            # compose 가 참조하는 필수 키 검증
+            for key in DOCKER_FILE_DIR EUREKA_BIN_FILE GATEWAY_BIN_FILE COMMON_BIN_FILE \
+                       EUREKA_LOG GATEWAY_LOG COMMON_LOG \
+                       MYSQL_HOST REDIS_HOST KAFKA_HOST; do
+              eval "value=\${$key:-}"
+              if [ -z "$value" ]; then
+                echo "::error::.env 에 $key 가 비어 있습니다."
+                exit 1
+              fi
             done
 
-            # 볼륨 마운트 대상 로그 디렉터리
-            mkdir -p logs/monglife-discovery-eureka \
-                     logs/monglife-discovery-gateway \
-                     logs/monglife-discovery-common-api
+            # 빌드 컨텍스트가 DOCKER_FILE_DIR 이므로 jar 을 보낸 곳과 같아야 한다
+            if [ "$DOCKER_FILE_DIR" != "$(pwd)" ]; then
+              echo "::error::DOCKER_FILE_DIR($DOCKER_FILE_DIR) 이 배포 디렉터리($(pwd)) 와 다릅니다."
+              exit 1
+            fi
+
+            mkdir -p "$EUREKA_LOG" "$GATEWAY_LOG" "$COMMON_LOG"
 
             # 레지스트리 → 게이트웨이 → API 순서로 교체
             docker compose up -d --build monglife-discovery-eureka
             docker compose up -d --build monglife-discovery-gateway
             docker compose up -d --build monglife-discovery-common-api
 
-            # dangling 이미지만 정리 (-a 는 다른 서비스 이미지까지 지운다)
+            # dangling 이미지만 정리 (-a 는 같은 서버의 다른 서비스 이미지까지 지운다)
             docker image prune -f
 
             docker compose ps
