@@ -129,22 +129,32 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 
 ### STAGE (`cd-stg`)
 
-빌드 → `~/docker` 로 전송 → `docker compose up -d --build <서비스>` 다. 스크립트(`run.sh`/`service.sh`)를
-서버에 두지 않고 워크플로가 compose 를 직접 호출한다.
+빌드 → `~/service/discovery` 로 전송 → `docker compose up -d --build <서비스>` 다.
+스크립트(`run.sh`/`service.sh`)를 서버에 두지 않고 워크플로가 compose 를 직접 호출한다.
+
+서버는 **discovery 와 nginx 두 스택**으로 나뉘고, 배포는 discovery 만 교체한다.
 
 ```
-~/docker/
-  .env                     ← 서버에서만 관리. 워크플로가 전송하지 않는다
-  docker-compose.yml       ┐
-  spring-boot-docker-file  ├ configs/docker/stg 에서 워크플로가 전송
-  .dockerignore            ┘
-  monglife-discovery-app-{eureka,gateway,common-api}.jar
+/home/monglife/service/          ← configs/docker/stg 트리를 그대로 넣고 setup.sh 한 번
+  setup.sh
+  discovery/                     ← 배포 대상
+    .env                         서버에서만 관리. 워크플로가 전송하지 않는다
+    docker-compose.yml       ┐
+    spring-boot-docker-file  ├ 워크플로가 매 배포마다 덮어쓴다
+    .dockerignore            ┘
+    monglife-discovery-app-{eureka,gateway,common-api}.jar
+  nginx/                         ← 독립 스택. 배포가 건드리지 않는다
+  logs/
 ```
 
 - 시크릿은 GitHub `stage` Environment 에 둔다: `HOST` `PORT` `USERNAME` `PASSWORD` `ACTION_TOKEN`.
+- 두 스택은 external 네트워크 `service-net` 으로만 이어진다. `setup.sh` 가 만들고, 워크플로도
+  기동 전에 없으면 만든다.
 - **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
   기동이 깨진다. 워크플로가 기동 전에 필수 키를 검사하니, compose 변수를 늘리면 그 목록도 함께 늘린다.
 - MySQL / Redis / Kafka 는 컨테이너가 아니라 외부 호스트다(`.env` 의 `*_HOST`).
+
+서버 트리의 상세와 조작법은 `configs/docker/stg/README.md` 에 있다.
 
 배포 순서는 **configs 푸시 → 서브모듈 포인터 커밋 → 코드 푸시** 다. 롤백할 때는 반대로 **코드부터**
 되돌린다. 코드를 되돌리면 configs 에 남은 키는 잉여값일 뿐이지만, configs 만 되돌리고 코드를 남기면
