@@ -171,7 +171,8 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 >   옛 이름의 컨테이너가 남아 포트를 물고 있으면 먼저 지운다.
 > - 배포마다 **eureka 까지 재기동**한다. 레지스트리가 잠시 비므로 운영에서 무중단이 필요하면
 >   eureka 를 배포 대상에서 빼는 것을 검토한다.
-> - 옛 `~/batch/service.sh` 와 `~/docker` 경로는 더 이상 쓰지 않는다.
+> - 옛 `~/batch/service.sh` 와 `~/docker` 경로는 더 이상 쓰지 않는다. `configs` 쪽 잔재
+>   (`docker/prd/service/`, `docker/prd/init.sh`)도 제거했다.
 
 ---
 
