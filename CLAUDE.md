@@ -149,8 +149,9 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
   logs/
 ```
 
-- 시크릿은 GitHub Environment 에 둔다. `stage` 는 `HOST` `PORT` `USERNAME` `PASSWORD` `ACTION_TOKEN`,
-  `product` 는 `PASSWORD` 대신 **`SSH_KEY`** (기존 운영 설정 유지).
+- 시크릿은 GitHub Environment(`stage` / `product`)에 둔다. 이름은 양쪽 같다:
+  `HOST` `PORT` `USERNAME` `SSH_KEY` `ACTION_TOKEN`. 두 워크플로는 이름·브랜치·`environment`·
+  `compose_dir` 만 다르고 나머지가 동일하므로, 한쪽을 고치면 다른 쪽도 같이 고친다.
 - 네트워크는 둘 다 external 이다. `service-net`(프록시 공유)은 없으면 만들고,
   **`storage-net`(MySQL/Redis/Kafka)은 만들지 않고 없으면 중단한다.** 빈 네트워크가 생기면
   컨테이너 이름 DNS 가 조용히 실패하기 때문이다.
