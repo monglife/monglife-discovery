@@ -165,6 +165,11 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 - **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
   기동이 깨진다. 워크플로가 기동 전에 필수 키를 검사하니, compose 변수를 늘리면 그 목록도 함께 늘린다.
 - `.env` 의 `*_HOST` 는 `storage-net` 위 **컨테이너 이름**, `*_PORT` 는 **컨테이너 포트**다.
+- **컨테이너에 넣는 환경변수 이름은 `UPPER_SNAKE` 로 쓴다.** `Dockerfile` 의 ENTRYPOINT 가
+  `sh -c` 라 `JAVA_OPTS` 를 단어 분리해 넘기는데, 그 셸(`dash`)이 **점이 들어간 이름
+  (`db.host`)을 유효한 식별자가 아니라며 버린다.** 그러면 yml 의 `${db.host}` 가 치환되지 않아
+  `Failed to parse the host:port pair '${db.host}:${db.port}'` 로 기동에 실패한다.
+  `DB_HOST` 로 주면 스프링의 relaxed binding 이 `${db.host}` 를 찾아준다.
   `.env` 는 서버의 `setup.sh` 가 만든다(내용이 스크립트 안에 인라인으로 있다).
 
 서버 트리의 상세와 조작법은 `configs/docker/<프로파일>/README.md` 에 있다.
