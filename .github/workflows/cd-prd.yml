@@ -106,7 +106,7 @@ jobs:
             # .env 는 서버에서만 관리한다. 없으면 compose 가 빈 문자열로 치환해
             # ":8761" 같은 잘못된 포트 매핑으로 조용히 깨지므로 여기서 끊는다.
             if [ ! -f .env ]; then
-              echo "::error::~/${{ env.remote_dir }}/.env 가 없습니다. 서버에서 ~/service/setup.sh 를 먼저 실행하세요."
+              echo "::error::~/${{ env.remote_dir }}/.env 가 없습니다. 서버에서 ~/service/discovery/setup.sh 를 먼저 실행하세요."
               exit 1
             fi
 

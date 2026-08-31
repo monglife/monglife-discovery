@@ -29,6 +29,10 @@ configs/                               ← 설정 서브모듈 (MongLife/monglif
 
 **이 저장소에는 어떤 설정 파일(`*.yml`)도 두지 않는다.** 새로 만들지도, 수정하지도 않는다.
 
+> ⚠️ **이 저장소는 퍼블릭이다.** 비밀번호·키·토큰·접속 정보를 코드에도 문서에도 적지 않는다.
+> 값이 필요하면 `configs`(프라이빗) 안의 위치를 가리키기만 한다. 한 번 커밋하면 파일에서
+> 지워도 히스토리에 남으므로, 노출된 값은 **교체**하는 수밖에 없다.
+
 `*/src/main/resources/*.yml`, `*.json`, `*.xml` 은 **빌드 산출물**이다. 루트 `build.gradle` 의
 `copyPrivate` 태스크가 만들어내고 `.gitignore` 가 걸려 있다. 직접 편집해도 다음 빌드에 사라진다.
 
@@ -104,9 +108,12 @@ git add configs && git commit -m "chore: configs 서브모듈 갱신"
 **Redis 만 대체 불가하다.** `TokenEntity` 가 `@RedisHash` 이고 `RedisConfig` 가
 `enableKeyspaceEvents = ON_STARTUP` 이라 기동 시점에 실제 연결이 필요하다.
 
+비밀번호는 `configs/properties/domains/monglife-discovery-domain-account/domain-account.yml` 의
+`local` 프로파일 `spring.data.account.redis.password` 와 같은 값을 쓴다.
+
 ```bash
 docker run -d --name monglife-local-redis -p 6379:6379 \
-  redis:7-alpine redis-server --requirepass 'mongscorp.!'
+  redis:7-alpine redis-server --requirepass '<domain-account.yml 의 local redis password>'
 
 ./gradlew :apps:monglife-discovery-app-common-api:bootRun --args='--spring.profiles.active=local'
 ```
@@ -138,8 +145,8 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 
 ```
 /home/monglife/service/          ← configs/docker/<프로파일> 트리를 그대로 넣고 setup.sh 한 번
-  setup.sh
   discovery/                     ← 배포 대상
+    setup.sh
     .env                         서버에서만 관리. 워크플로가 전송하지 않는다
     docker-compose.yml       ┐
     spring-boot-docker-file  ├ 워크플로가 매 배포마다 덮어쓴다
