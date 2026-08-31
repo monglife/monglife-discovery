@@ -1,36 +1,48 @@
 name: CI COMMON
+
 on:
   push:
     branches:
       - develop
+  workflow_dispatch:
+
 permissions:
   contents: read
   checks: write
-  pull-requests: write
+
 jobs:
-  # Discovery Common API 빌드 테스트
   build-test:
     name: Discovery Common API 빌드 테스트
     runs-on: ubuntu-latest
     steps:
-      # 소스 로드
+      # 소스 로드 (configs 서브모듈 포함)
       - name: 소스 코드 로드
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.ACTION_TOKEN }}
           submodules: true
-      # Java 환경 설정
+
       - name: JDK 설정
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-      # gradlew 권한 변경
+          cache: gradle
+
       - name: Gradle 권한 부여
         run: chmod +x gradlew
-      # 환경 설정 파일 로드
+
+      # 설정을 서브모듈에서 각 모듈 리소스로 복사
       - name: 환경 설정 파일 로드
         run: ./gradlew copyPrivate
-      # Discovery Common API 빌드
+
       - name: Discovery Common API 모듈 빌드
-        run: ./gradlew :apps:monglife-discovery-app-common-api:build
+        run: ./gradlew --no-daemon :apps:monglife-discovery-app-common-api:build
+
+      # 테스트는 현재 common-api 에만 있다. 다른 모듈에 추가하면 그 모듈
+      # build.gradle 에 useJUnitPlatform() 을 넣고 여기에도 이 스텝을 넣는다.
+      - name: 테스트 리포트 작성
+        uses: mikepenz/action-junit-report@v5
+        if: success() || failure()
+        with:
+          report_paths: '**/build/test-results/test/TEST-*.xml'
