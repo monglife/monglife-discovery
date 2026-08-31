@@ -127,15 +127,17 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 | `stage` | `cd-stg` | STAGE 서버 배포 |
 | `release` | `cd-prd` | 운영 배포 |
 
-### STAGE (`cd-stg`)
+### STAGE / PRODUCT (`cd-stg` / `cd-prd`)
 
 빌드 → `~/service/discovery` 로 전송 → `docker compose up -d --build <서비스>` 다.
 스크립트(`run.sh`/`service.sh`)를 서버에 두지 않고 워크플로가 compose 를 직접 호출한다.
 
 서버는 **discovery 와 nginx 두 스택**으로 나뉘고, 배포는 discovery 만 교체한다.
 
+두 환경은 **프로파일과 SSH 시크릿만 다르고 구조가 같다.**
+
 ```
-/home/monglife/service/          ← configs/docker/stg 트리를 그대로 넣고 setup.sh 한 번
+/home/monglife/service/          ← configs/docker/<프로파일> 트리를 그대로 넣고 setup.sh 한 번
   setup.sh
   discovery/                     ← 배포 대상
     .env                         서버에서만 관리. 워크플로가 전송하지 않는다
@@ -147,23 +149,28 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
   logs/
 ```
 
-- 시크릿은 GitHub `stage` Environment 에 둔다: `HOST` `PORT` `USERNAME` `PASSWORD` `ACTION_TOKEN`.
-- 두 스택은 external 네트워크 `service-net` 으로만 이어진다. `setup.sh` 가 만들고, 워크플로도
-  기동 전에 없으면 만든다.
+- 시크릿은 GitHub Environment 에 둔다. `stage` 는 `HOST` `PORT` `USERNAME` `PASSWORD` `ACTION_TOKEN`,
+  `product` 는 `PASSWORD` 대신 **`SSH_KEY`** (기존 운영 설정 유지).
+- 네트워크는 둘 다 external 이다. `service-net`(프록시 공유)은 없으면 만들고,
+  **`storage-net`(MySQL/Redis/Kafka)은 만들지 않고 없으면 중단한다.** 빈 네트워크가 생기면
+  컨테이너 이름 DNS 가 조용히 실패하기 때문이다.
 - **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
   기동이 깨진다. 워크플로가 기동 전에 필수 키를 검사하니, compose 변수를 늘리면 그 목록도 함께 늘린다.
-- MySQL / Redis / Kafka 는 컨테이너가 아니라 외부 호스트다(`.env` 의 `*_HOST`).
+- `.env` 의 `*_HOST` 는 `storage-net` 위 **컨테이너 이름**, `*_PORT` 는 **컨테이너 포트**다.
+  `.env` 는 서버의 `setup.sh` 가 만든다(내용이 스크립트 안에 인라인으로 있다).
 
-서버 트리의 상세와 조작법은 `configs/docker/stg/README.md` 에 있다.
+서버 트리의 상세와 조작법은 `configs/docker/<프로파일>/README.md` 에 있다.
 
 배포 순서는 **configs 푸시 → 서브모듈 포인터 커밋 → 코드 푸시** 다. 롤백할 때는 반대로 **코드부터**
 되돌린다. 코드를 되돌리면 configs 에 남은 키는 잉여값일 뿐이지만, configs 만 되돌리고 코드를 남기면
 기동에 실패한다.
 
-> ⚠️ `cd-prd.yml` 의 `:74` 와 `:96` 이 **둘 다** `restart ${{ env.gateway }}` 다. 운영 배포가 jar 만
-> 복사하고 common-api 프로세스를 교체하지 않는다. 게다가 `env.common` 값이
-> `monglife-discovery-common` 인데 실제 운영 컨테이너명은 `monglife-discovery-common-api` 다.
-> 운영 배포 후에는 common-api 가 실제로 재시작됐는지 직접 확인할 것. (미수정)
+> ⚠️ 운영 이관 시 확인할 것
+> - 컨테이너 이름이 `monglife-discovery-common` → **`monglife-discovery-common-api`** 로 바뀐다.
+>   옛 이름의 컨테이너가 남아 포트를 물고 있으면 먼저 지운다.
+> - 배포마다 **eureka 까지 재기동**한다. 레지스트리가 잠시 비므로 운영에서 무중단이 필요하면
+>   eureka 를 배포 대상에서 빼는 것을 검토한다.
+> - 옛 `~/batch/service.sh` 와 `~/docker` 경로는 더 이상 쓰지 않는다.
 
 ---
 
