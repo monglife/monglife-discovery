@@ -3,8 +3,9 @@ name: CD TEST (임시)
 # cd-stg.yml 의 복제본. STAGE 서버로 실제 배포하는 것을 이 브랜치에서 검증하기 위한
 # 임시 워크플로다. **검증이 끝나면 지운다.**
 #
-# cd-stg.yml 과의 차이는 트리거와 이름뿐이고, 빌드/전송/기동 로직은 동일하다.
-# 고칠 일이 생기면 cd-stg.yml 을 고치고 여기로 복사한다.
+# 배포 자산은 configs 서브모듈의 새 트리(`deploy/<환경>/service/discovery`) 를 쓴다.
+# cd-stg.yml / cd-prd.yml 은 아직 옛 경로(`configs/docker/<프로파일>/discovery`) 를 가리키므로
+# 여기서 검증이 끝나면 두 워크플로에 같은 내용을 옮긴다.
 #
 # workflow_dispatch 버튼은 워크플로 파일이 **기본 브랜치(main)** 에 있어야 UI 에 뜬다.
 # 그래서 이 브랜치 push 로도 돌게 해 둔다.
@@ -20,14 +21,18 @@ permissions:
   checks: write
 
 env:
-  # configs 서브모듈 안의 stg 배포 자산
-  compose_dir: configs/docker/stg/discovery
-  # STAGE 서버의 배포 디렉터리 (홈 기준). .env 의 DOCKER_FILE_DIR 과 같아야 한다.
+  # configs 서브모듈 안의 stage 배포 자산 (deploy/<환경>/service/<스택>)
+  deploy_dir: configs/deploy/stage/service/discovery
+  # 서버의 배포 디렉터리 (홈 기준). configs 의 deploy/<환경>/service/ 트리가 ~/service/ 로 간다.
   remote_dir: service/discovery
+  # 스택 공용 환경변수(.env_global 아님, 파일 이름은 .env). nginx 스택과 공유하고
+  # BASE_LOG_PATH / BASE_TIME_ZONE / LETSENCRYPT_DIR 이 여기서 온다.
+  # 이 워크플로는 전송하지 않고 존재 여부만 확인한다. → configs/deploy/<환경>/global/.env
+  remote_global_env: global/.env
 
 jobs:
   discovery-deploy:
-    name: Discovery STAGE 배포 (테스트)
+    name: Discovery 배포
     runs-on: ubuntu-latest
     environment: stage
     steps:
@@ -67,15 +72,22 @@ jobs:
         with:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
-      # 서버 ~/service/discovery 에 그대로 펼쳐질 디렉터리를 만든다. .env 는 포함하지 않는다.
+      # 서버 ~/service/discovery 에 그대로 펼쳐질 디렉터리를 만든다.
+      # 이 스택의 .env 는 configs 에서 관리하므로 함께 보낸다(서버 파일을 덮어쓴다).
+      # 공용 ~/global/.env 는 별도 스택 자산이라 보내지 않는다.
       - name: 배포 산출물 구성
         run: |
           set -euo pipefail
           rm -rf deploy && mkdir -p deploy
 
-          cp "${{ env.compose_dir }}/docker-compose.yml"      deploy/
-          cp "${{ env.compose_dir }}/spring-boot-docker-file"  deploy/
-          cp "${{ env.compose_dir }}/.dockerignore"            deploy/
+          cp "${{ env.deploy_dir }}/docker-compose.yml"      deploy/
+          cp "${{ env.deploy_dir }}/spring-boot-docker-file" deploy/
+          cp "${{ env.deploy_dir }}/.dockerignore"           deploy/
+          cp "${{ env.deploy_dir }}/.env"                    deploy/
+          cp "${{ env.deploy_dir }}/startup.sh"              deploy/
+          cp "${{ env.deploy_dir }}/shutdown.sh"             deploy/
+          cp "${{ env.deploy_dir }}/process.sh"              deploy/
+          chmod +x deploy/*.sh
 
           for module in monglife-discovery-app-eureka \
                         monglife-discovery-app-gateway \
@@ -86,15 +98,15 @@ jobs:
 
           ls -al deploy
 
-      # deploy/ 한 겹만 벗겨 ~/service/discovery 아래로 (.env 는 건드리지 않는다)
-      - name: 배포 산출물 STAGE 서버로 전송
+      # deploy/ 한 겹만 벗겨 ~/service/discovery 아래로
+      - name: 배포 산출물 서버로 전송
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: "deploy/*,deploy/.dockerignore"
+          source: "deploy/*,deploy/.dockerignore,deploy/.env"
           target: "~/${{ env.remote_dir }}"
           strip_components: 1
           overwrite: true
@@ -112,21 +124,25 @@ jobs:
           script: |
             cd ~/${{ env.remote_dir }}
 
-            # .env 는 서버에서만 관리한다. 없으면 compose 가 빈 문자열로 치환해
-            # ":8761" 같은 잘못된 포트 매핑으로 조용히 깨지므로 여기서 끊는다.
-            if [ ! -f .env ]; then
-              echo "::error::~/${{ env.remote_dir }}/.env 가 없습니다. 서버에서 ~/service/discovery/setup.sh 를 먼저 실행하세요."
+            # 공용 환경변수. 없으면 compose 가 BASE_LOG_PATH 를 빈 문자열로 치환해
+            # 볼륨이 "/monglife-discovery-eureka" 로 잡히므로 여기서 끊는다.
+            if [ ! -f ~/${{ env.remote_global_env }} ]; then
+              echo "::error::~/${{ env.remote_global_env }} 가 없습니다. global 스택을 먼저 배치하세요."
               exit 1
             fi
 
             set -a
+            . ~/${{ env.remote_global_env }}
             . ./.env
             set +a
 
-            # compose 가 참조하는 필수 키 검증
-            for key in DOCKER_FILE_DIR EUREKA_BIN_FILE GATEWAY_BIN_FILE COMMON_BIN_FILE \
-                       EUREKA_LOG GATEWAY_LOG COMMON_LOG \
-                       MYSQL_HOST REDIS_HOST KAFKA_HOST; do
+            # compose 가 참조하는 필수 키 검증. 비어 있으면 compose 는 경고만 내고 진행해
+            # ":8761" 같은 잘못된 포트 매핑으로 조용히 깨진다.
+            for key in BASE_LOG_PATH \
+                       MYSQL_HOST MYSQL_PORT REDIS_HOST REDIS_PORT KAFKA_HOST KAFKA_PORT \
+                       EUREKA_PORT EUREKA_METRIC_PORT EUREKA_BIN_FILE EUREKA_SERVICE_OPTS \
+                       GATEWAY_PORT GATEWAY_METRIC_PORT GATEWAY_BIN_FILE GATEWAY_SERVICE_OPTS \
+                       COMMON_PORT COMMON_METRIC_PORT COMMON_BIN_FILE COMMON_SERVICE_OPTS; do
               eval "value=\${$key:-}"
               if [ -z "$value" ]; then
                 echo "::error::.env 에 $key 가 비어 있습니다."
@@ -134,15 +150,25 @@ jobs:
               fi
             done
 
-            # 빌드 컨텍스트가 DOCKER_FILE_DIR 이므로 jar 을 보낸 곳과 같아야 한다
-            if [ "$DOCKER_FILE_DIR" != "$(pwd)" ]; then
-              echo "::error::DOCKER_FILE_DIR($DOCKER_FILE_DIR) 이 배포 디렉터리($(pwd)) 와 다릅니다."
-              exit 1
+            # TZ 는 비어도 컨테이너가 UTC 로 뜨기만 하므로 경고까지만 한다.
+            if [ -z "${BASE_TIME_ZONE:-}" ]; then
+              echo "::warning::BASE_TIME_ZONE 이 비어 있습니다. 컨테이너 TZ 가 UTC 가 됩니다."
             fi
 
-            mkdir -p "$EUREKA_LOG" "$GATEWAY_LOG" "$COMMON_LOG"
+            # jar 이 compose 의 build.args.TARGET_JAR 와 이름이 맞는지 (빌드 컨텍스트가 이 디렉터리다)
+            for jar in "$EUREKA_BIN_FILE" "$GATEWAY_BIN_FILE" "$COMMON_BIN_FILE"; do
+              if [ ! -f "./$jar" ]; then
+                echo "::error::$jar 이 $(pwd) 에 없습니다."
+                exit 1
+              fi
+            done
 
-            # 리버스 프록시와 공유하는 external 네트워크. 없으면 만든다.
+            # 로그 볼륨. 먼저 만들지 않으면 도커가 root 소유로 만든다.
+            mkdir -p "$BASE_LOG_PATH/monglife-discovery-eureka" \
+                     "$BASE_LOG_PATH/monglife-discovery-gateway" \
+                     "$BASE_LOG_PATH/monglife-discovery-common-api"
+
+            # 리버스 프록시(nginx 스택)와 공유하는 external 네트워크. 없으면 만든다.
             docker network inspect service-net >/dev/null 2>&1 || docker network create service-net
 
             # MySQL / Redis / Kafka 가 올라가 있는 기존 네트워크. 여기서 만들면 안 된다.
@@ -161,12 +187,12 @@ jobs:
               esac
             done
 
-            # 레지스트리 → 게이트웨이 → API 순서로 교체
-            docker compose up -d --build monglife-discovery-eureka
-            docker compose up -d --build monglife-discovery-gateway
-            docker compose up -d --build monglife-discovery-common-api
+            # 기동은 스택이 들고 있는 스크립트에 맡긴다 (down → up -d --build).
+            # scp 가 실행 비트를 보존하지 못하는 경우가 있어 다시 세운다.
+            chmod +x ./startup.sh ./shutdown.sh ./process.sh
+            ./startup.sh
 
             # dangling 이미지만 정리 (-a 는 같은 서버의 다른 서비스 이미지까지 지운다)
             docker image prune -f
 
-            docker compose ps
+            ./process.sh
