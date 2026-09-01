@@ -1,11 +1,10 @@
 name: CD TEST (임시)
 
-# cd-stg.yml 의 복제본. STAGE 서버로 실제 배포하는 것을 이 브랜치에서 검증하기 위한
-# 임시 워크플로다. **검증이 끝나면 지운다.**
+# cd-prd.yml 의 복제본. PRODUCT 배포를 이 브랜치에서 검증하기 위한 임시 워크플로다.
+# **검증이 끝나면 지운다.**
 #
-# 배포 자산은 configs 서브모듈의 새 트리(`deploy/<환경>/service/discovery`) 를 쓴다.
-# cd-stg.yml / cd-prd.yml 은 아직 옛 경로(`configs/docker/<프로파일>/discovery`) 를 가리키므로
-# 여기서 검증이 끝나면 두 워크플로에 같은 내용을 옮긴다.
+# ⚠ 실제 운영 환경(environment: product, configs/deploy/product)으로 배포한다.
+#   cd-prd.yml 과 다른 것은 name 과 트리거 브랜치뿐이다.
 #
 # workflow_dispatch 버튼은 워크플로 파일이 **기본 브랜치(main)** 에 있어야 UI 에 뜬다.
 # 그래서 이 브랜치 push 로도 돌게 해 둔다.
@@ -21,12 +20,12 @@ permissions:
   checks: write
 
 env:
-  # configs 서브모듈 안의 stage 배포 자산 (deploy/<환경>/service/<스택>)
-  deploy_dir: configs/deploy/stage/service/discovery
+  # 배포 대상 환경. configs 서브모듈의 deploy/<환경>/ 과 GitHub Environment 이름이 같다.
+  deploy_env: product
   # 서버의 배포 디렉터리 (홈 기준). configs 의 deploy/<환경>/service/ 트리가 ~/service/ 로 간다.
   remote_dir: service/discovery
-  # 스택 공용 환경변수(.env_global 아님, 파일 이름은 .env). nginx 스택과 공유하고
-  # BASE_LOG_PATH / BASE_TIME_ZONE / LETSENCRYPT_DIR 이 여기서 온다.
+  # 스택 공용 환경변수(파일 이름은 .env). nginx·storage 스택과 공유하고
+  # BASE_LOG_PATH / BASE_TIME_ZONE 이 여기서 온다.
   # 이 워크플로는 전송하지 않고 존재 여부만 확인한다. → configs/deploy/<환경>/global/.env
   remote_global_env: global/.env
 
@@ -34,7 +33,7 @@ jobs:
   discovery-deploy:
     name: Discovery 배포
     runs-on: ubuntu-latest
-    environment: stage
+    environment: product
     steps:
       # 소스 로드 (configs 서브모듈 포함)
       - name: 소스 코드 로드
@@ -80,13 +79,15 @@ jobs:
           set -euo pipefail
           rm -rf deploy && mkdir -p deploy
 
-          cp "${{ env.deploy_dir }}/docker-compose.yml"      deploy/
-          cp "${{ env.deploy_dir }}/spring-boot-docker-file" deploy/
-          cp "${{ env.deploy_dir }}/.dockerignore"           deploy/
-          cp "${{ env.deploy_dir }}/.env"                    deploy/
-          cp "${{ env.deploy_dir }}/startup.sh"              deploy/
-          cp "${{ env.deploy_dir }}/shutdown.sh"             deploy/
-          cp "${{ env.deploy_dir }}/process.sh"              deploy/
+          src="configs/deploy/${{ env.deploy_env }}/service/discovery"
+
+          cp "$src/docker-compose.yml"      deploy/
+          cp "$src/spring-boot-docker-file" deploy/
+          cp "$src/.dockerignore"           deploy/
+          cp "$src/.env"                    deploy/
+          cp "$src/startup.sh"              deploy/
+          cp "$src/shutdown.sh"             deploy/
+          cp "$src/process.sh"              deploy/
           chmod +x deploy/*.sh
 
           for module in monglife-discovery-app-eureka \
@@ -138,7 +139,8 @@ jobs:
             # compose 가 참조하는 필수 키 검증. 비어 있으면 compose 는 경고만 내고 진행해
             # ":8761" 같은 잘못된 포트 매핑으로 조용히 깨진다.
             for key in BASE_LOG_PATH \
-                       MYSQL_HOST MYSQL_PORT REDIS_HOST REDIS_PORT KAFKA_HOST KAFKA_PORT \
+                       MYSQL_HOST MYSQL_PORT DB_USERNAME DB_PASSWORD \
+                       REDIS_HOST REDIS_PORT REDIS_PASSWORD KAFKA_HOST KAFKA_PORT \
                        EUREKA_PORT EUREKA_METRIC_PORT EUREKA_BIN_FILE EUREKA_SERVICE_OPTS \
                        GATEWAY_PORT GATEWAY_METRIC_PORT GATEWAY_BIN_FILE GATEWAY_SERVICE_OPTS \
                        COMMON_PORT COMMON_METRIC_PORT COMMON_BIN_FILE COMMON_SERVICE_OPTS; do
@@ -191,7 +193,14 @@ jobs:
             # 기동에 실패하면 로그를 찍고 비정상 종료한다(그래야 이 스텝이 실패한다).
             # scp 가 실행 비트를 보존하지 못하는 경우가 있어 다시 세운다.
             chmod +x ./startup.sh ./shutdown.sh ./process.sh
-            ./startup.sh
+
+            # ssh-action 의 script_stop 에 기대지 않고 종료 코드를 직접 본다.
+            # 마지막 명령(prune)의 코드가 스텝 결과가 되어 버려서, startup.sh 가
+            # 1 로 끝나도 "Successfully executed" 로 초록불이 뜬 적이 있다.
+            if ! ./startup.sh; then
+              echo "::error::discovery 스택 기동에 실패했습니다. 위 컨테이너 로그를 확인하세요."
+              exit 1
+            fi
 
             # dangling 이미지만 정리 (-a 는 같은 서버의 다른 서비스 이미지까지 지운다)
             docker image prune -f
