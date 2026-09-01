@@ -119,8 +119,7 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          script_stop: true
-          command_timeout: '20m'
+          command_timeout: '30m'
           script: |
             cd ~/${{ env.remote_dir }}
 
@@ -187,12 +186,12 @@ jobs:
               esac
             done
 
-            # 기동은 스택이 들고 있는 스크립트에 맡긴다 (down → up -d --build).
+            # 기동은 스택이 들고 있는 스크립트에 맡긴다.
+            # startup.sh 가 down → up -d --build 후 컨테이너 상태까지 확인하고,
+            # 기동에 실패하면 로그를 찍고 비정상 종료한다(그래야 이 스텝이 실패한다).
             # scp 가 실행 비트를 보존하지 못하는 경우가 있어 다시 세운다.
             chmod +x ./startup.sh ./shutdown.sh ./process.sh
             ./startup.sh
 
             # dangling 이미지만 정리 (-a 는 같은 서버의 다른 서비스 이미지까지 지운다)
             docker image prune -f
-
-            ./process.sh
