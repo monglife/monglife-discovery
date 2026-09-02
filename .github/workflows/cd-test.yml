@@ -56,6 +56,23 @@ jobs:
       - name: 환경 설정 파일 로드
         run: ./gradlew copyPrivate
 
+      # 모듈 버전 추출
+      - name: Get module versions
+        id: versions
+        run: |
+          EUREKA_VERSION=$(./gradlew :apps:monglife-discovery-app-eureka:properties -q | grep "^version:" | awk '{print $2}')
+          GATEWAY_VERSION=$(./gradlew :apps:monglife-discovery-app-gateway:properties -q | grep "^version:" | awk '{print $2}')
+          COMMON_API_VERSION=$(./gradlew :apps:monglife-discovery-app-common-api:properties -q | grep "^version:" | awk '{print $2}')
+          
+          echo "eureka=$EUREKA_VERSION" >> "$GITHUB_OUTPUT"
+          echo "gateway=$GATEWAY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "common-api=$COMMON_API_VERSION" >> "$GITHUB_OUTPUT"
+          
+          printf "%s\n" \
+            "MONGLIFE_DISCOVERY_EUREKA_VERSION=${{ steps.versions.outputs.eureka }}" \
+            "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${{ steps.versions.outputs.gateway }}" \
+            "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${{ steps.versions.outputs.common-api }}"
+
       # 세 앱 모듈 빌드. bootJar 이름이 <모듈명>.jar 로 고정돼 있어
       # .env 의 *_BIN_FILE 값과 그대로 맞는다.
       - name: Discovery 모듈 빌드
@@ -78,6 +95,13 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf deploy && mkdir -p deploy
+          
+          # .version 파일 생성
+          printf "%s\n" \
+          "MONGLIFE_DISCOVERY_EUREKA_VERSION=${{ steps.versions.outputs.eureka }}" \
+          "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${{ steps.versions.outputs.gateway }}" \
+          "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${{ steps.versions.outputs.common-api }}" \
+          > deploy/.version
 
           src="configs/deploy/${{ env.deploy_env }}/service/discovery"
 
@@ -113,23 +137,6 @@ jobs:
           overwrite: true
           timeout: '600s'
 
-      # 모듈 버전 추출
-      - name: Get module versions
-        id: versions
-        run: |
-          EUREKA_VERSION=$(./gradlew :apps:monglife-discovery-app-eureka:properties -q | grep "^version:" | awk '{print $2}')
-          GATEWAY_VERSION=$(./gradlew :apps:monglife-discovery-app-gateway:properties -q | grep "^version:" | awk '{print $2}')
-          COMMON_API_VERSION=$(./gradlew :apps:monglife-discovery-app-common-api:properties -q | grep "^version:" | awk '{print $2}')
-          
-          echo "eureka=$EUREKA_VERSION" >> "$GITHUB_OUTPUT"
-          echo "gateway=$GATEWAY_VERSION" >> "$GITHUB_OUTPUT"
-          echo "common-api=$COMMON_API_VERSION" >> "$GITHUB_OUTPUT"
-          
-          printf "%s\n" \
-            "MONGLIFE_DISCOVERY_EUREKA_VERSION=${{ steps.versions.outputs.eureka }}" \
-            "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${{ steps.versions.outputs.gateway }}" \
-            "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${{ steps.versions.outputs.common-api }}"
-
       - name: Discovery 서비스 기동
         uses: appleboy/ssh-action@v1
         with:
@@ -151,6 +158,7 @@ jobs:
             set -a
             . ~/${{ env.remote_global_env }}
             . ./.env
+            . ./.version
             set +a
 
             # compose 가 참조하는 필수 키 검증. 비어 있으면 compose 는 경고만 내고 진행해
@@ -204,13 +212,6 @@ jobs:
                 *) echo "::warning::$host 가 storage-net 에 없습니다. (현재: $members)" ;;
               esac
             done
-            
-            # .version 파일 생성
-            printf "%s\n" \
-            "MONGLIFE_DISCOVERY_EUREKA_VERSION=${{ steps.versions.outputs.eureka }}" \
-            "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${{ steps.versions.outputs.gateway }}" \
-            "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${{ steps.versions.outputs.common-api }}" \
-            > .version
 
             # 기동은 스택이 들고 있는 스크립트에 맡긴다.
             # startup.sh 가 down → up -d --build 후 컨테이너 상태까지 확인하고,
