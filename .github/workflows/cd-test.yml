@@ -112,6 +112,7 @@ jobs:
           cp "$src/startup.sh"              deploy/
           cp "$src/shutdown.sh"             deploy/
           cp "$src/process.sh"              deploy/
+          cp "$src/logs.sh"                 deploy/
           chmod +x deploy/*.sh
 
           for module in monglife-discovery-app-eureka \
@@ -131,7 +132,7 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: "deploy/*,deploy/.dockerignore,deploy/.env"
+          source: "deploy/*,deploy/.dockerignore,deploy/.env,deploy/.version"
           target: "~/${{ env.remote_dir }}"
           strip_components: 1
           overwrite: true
