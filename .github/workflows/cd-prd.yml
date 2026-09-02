@@ -19,10 +19,6 @@ env:
   deploy_env: product
   # 서버의 배포 디렉터리 (홈 기준). configs 의 deploy/<환경>/service/ 트리가 ~/service/ 로 간다.
   remote_dir: service/discovery
-  # 스택 공용 환경변수(파일 이름은 .env). nginx·storage 스택과 공유하고
-  # BASE_LOG_PATH / BASE_TIME_ZONE 이 여기서 온다.
-  # 이 워크플로는 전송하지 않고 존재 여부만 확인한다. → configs/deploy/<환경>/global/.env
-  remote_global_env: global/.env
 
 jobs:
   discovery-deploy:
@@ -51,6 +47,18 @@ jobs:
       - name: 환경 설정 파일 로드
         run: ./gradlew copyPrivate
 
+      # 모듈 버전 추출
+      - name: Get module versions
+        id: versions
+        run: |
+          EUREKA_VERSION=$(./gradlew :apps:monglife-discovery-app-eureka:properties -q | grep "^version:" | awk '{print $2}')
+          GATEWAY_VERSION=$(./gradlew :apps:monglife-discovery-app-gateway:properties -q | grep "^version:" | awk '{print $2}')
+          COMMON_API_VERSION=$(./gradlew :apps:monglife-discovery-app-common-api:properties -q | grep "^version:" | awk '{print $2}')
+          
+          echo "eureka=$EUREKA_VERSION" >> "$GITHUB_OUTPUT"
+          echo "gateway=$GATEWAY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "common-api=$COMMON_API_VERSION" >> "$GITHUB_OUTPUT"
+
       # 세 앱 모듈 빌드. bootJar 이름이 <모듈명>.jar 로 고정돼 있어
       # .env 의 *_BIN_FILE 값과 그대로 맞는다.
       - name: Discovery 모듈 빌드
@@ -67,22 +75,27 @@ jobs:
           report_paths: '**/build/test-results/test/TEST-*.xml'
 
       # 서버 ~/service/discovery 에 그대로 펼쳐질 디렉터리를 만든다.
-      # 이 스택의 .env 는 configs 에서 관리하므로 함께 보낸다(서버 파일을 덮어쓴다).
-      # 공용 ~/global/.env 는 별도 스택 자산이라 보내지 않는다.
+      # .env 는 **서버에서만 관리한다.** 여기서 보내면 서버의 계정 설정을 덮어쓴다.
+      # 공용 ~/global/.env 도 다른 스택과 공유하는 자산이라 보내지 않는다.
       - name: 배포 산출물 구성
         run: |
           set -euo pipefail
           rm -rf deploy && mkdir -p deploy
+
+          # 빌드한 모듈 버전. service.sh 가 읽는다(compose 는 .env 만 본다).
+          printf "%s\n" \
+            "MONGLIFE_DISCOVERY_EUREKA_VERSION=${{ steps.versions.outputs.eureka }}" \
+            "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${{ steps.versions.outputs.gateway }}" \
+            "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${{ steps.versions.outputs.common-api }}" \
+            > deploy/.version
 
           src="configs/deploy/${{ env.deploy_env }}/service/discovery"
 
           cp "$src/docker-compose.yml"      deploy/
           cp "$src/spring-boot-docker-file" deploy/
           cp "$src/.dockerignore"           deploy/
-          cp "$src/.env"                    deploy/
-          cp "$src/startup.sh"              deploy/
-          cp "$src/shutdown.sh"             deploy/
-          cp "$src/process.sh"              deploy/
+          cp "$src/.compose"                deploy/
+          cp "$src/service.sh"              deploy/
           chmod +x deploy/*.sh
 
           for module in monglife-discovery-app-eureka \
@@ -102,7 +115,7 @@ jobs:
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          source: "deploy/*,deploy/.dockerignore,deploy/.env"
+          source: "deploy/*,deploy/.dockerignore,deploy/.compose,deploy/.version"
           target: "~/${{ env.remote_dir }}"
           strip_components: 1
           overwrite: true
@@ -119,80 +132,15 @@ jobs:
           script: |
             cd ~/${{ env.remote_dir }}
 
-            # 공용 환경변수. 없으면 compose 가 BASE_LOG_PATH 를 빈 문자열로 치환해
-            # 볼륨이 "/monglife-discovery-eureka" 로 잡히므로 여기서 끊는다.
-            if [ ! -f ~/${{ env.remote_global_env }} ]; then
-              echo "::error::~/${{ env.remote_global_env }} 가 없습니다. global 스택을 먼저 배치하세요."
-              exit 1
-            fi
-
-            set -a
-            . ~/${{ env.remote_global_env }}
-            . ./.env
-            set +a
-
-            # compose 가 참조하는 필수 키 검증. 비어 있으면 compose 는 경고만 내고 진행해
-            # ":8761" 같은 잘못된 포트 매핑으로 조용히 깨진다.
-            for key in BASE_LOG_PATH \
-                       MYSQL_HOST MYSQL_PORT DB_USERNAME DB_PASSWORD \
-                       REDIS_HOST REDIS_PORT REDIS_PASSWORD KAFKA_HOST KAFKA_PORT \
-                       EUREKA_PORT EUREKA_METRIC_PORT EUREKA_BIN_FILE EUREKA_SERVICE_OPTS \
-                       GATEWAY_PORT GATEWAY_METRIC_PORT GATEWAY_BIN_FILE GATEWAY_SERVICE_OPTS \
-                       COMMON_PORT COMMON_METRIC_PORT COMMON_BIN_FILE COMMON_SERVICE_OPTS; do
-              eval "value=\${$key:-}"
-              if [ -z "$value" ]; then
-                echo "::error::.env 에 $key 가 비어 있습니다."
-                exit 1
-              fi
-            done
-
-            # TZ 는 비어도 컨테이너가 UTC 로 뜨기만 하므로 경고까지만 한다.
-            if [ -z "${BASE_TIME_ZONE:-}" ]; then
-              echo "::warning::BASE_TIME_ZONE 이 비어 있습니다. 컨테이너 TZ 가 UTC 가 됩니다."
-            fi
-
-            # jar 이 compose 의 build.args.TARGET_JAR 와 이름이 맞는지 (빌드 컨텍스트가 이 디렉터리다)
-            for jar in "$EUREKA_BIN_FILE" "$GATEWAY_BIN_FILE" "$COMMON_BIN_FILE"; do
-              if [ ! -f "./$jar" ]; then
-                echo "::error::$jar 이 $(pwd) 에 없습니다."
-                exit 1
-              fi
-            done
-
-            # 로그 볼륨. 먼저 만들지 않으면 도커가 root 소유로 만든다.
-            mkdir -p "$BASE_LOG_PATH/monglife-discovery-eureka" \
-                     "$BASE_LOG_PATH/monglife-discovery-gateway" \
-                     "$BASE_LOG_PATH/monglife-discovery-common-api"
-
-            # 리버스 프록시(nginx 스택)와 공유하는 external 네트워크. 없으면 만든다.
-            docker network inspect service-net >/dev/null 2>&1 || docker network create service-net
-
-            # MySQL / Redis / Kafka 가 올라가 있는 기존 네트워크. 여기서 만들면 안 된다.
-            # 빈 네트워크가 생기면 컨테이너 이름 DNS 가 조용히 실패한다.
-            if ! docker network inspect storage-net >/dev/null 2>&1; then
-              echo "::error::네트워크 storage-net 이 없습니다. MySQL/Redis/Kafka 스택을 먼저 올리세요."
-              exit 1
-            fi
-
-            # .env 의 *_HOST 가 storage-net 위에 실제로 있는지 (오타/이름 불일치 조기 발견)
-            members=$(docker network inspect storage-net --format '{{range .Containers}}{{.Name}} {{end}}')
-            for host in "$MYSQL_HOST" "$REDIS_HOST" "$KAFKA_HOST"; do
-              case " $members " in
-                *" $host "*) ;;
-                *) echo "::warning::$host 가 storage-net 에 없습니다. (현재: $members)" ;;
-              esac
-            done
-
-            # 기동은 스택이 들고 있는 스크립트에 맡긴다.
-            # startup.sh 가 down → up -d --build 후 컨테이너 상태까지 확인하고,
-            # 기동에 실패하면 로그를 찍고 비정상 종료한다(그래야 이 스텝이 실패한다).
+            # 사전 검사(필수 키·로그 디렉터리·네트워크·jar 존재)와 기동 확인은 모두
+            # service.sh 가 한다. 서버에서 손으로 돌릴 때도 같은 검사를 받도록 한곳에 모았다.
             # scp 가 실행 비트를 보존하지 못하는 경우가 있어 다시 세운다.
-            chmod +x ./startup.sh ./shutdown.sh ./process.sh
+            chmod +x ./service.sh
 
             # ssh-action 의 script_stop 에 기대지 않고 종료 코드를 직접 본다.
-            # 마지막 명령(prune)의 코드가 스텝 결과가 되어 버려서, startup.sh 가
-            # 1 로 끝나도 "Successfully executed" 로 초록불이 뜬 적이 있다.
-            if ! ./startup.sh; then
+            # 마지막 명령(prune)의 코드가 스텝 결과가 되어 버려서, 기동이 1 로 끝나도
+            # "Successfully executed" 로 초록불이 뜬 적이 있다.
+            if ! ./service.sh up; then
               echo "::error::discovery 스택 기동에 실패했습니다. 위 컨테이너 로그를 확인하세요."
               exit 1
             fi
