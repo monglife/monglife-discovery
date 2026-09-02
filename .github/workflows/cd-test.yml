@@ -85,7 +85,7 @@ jobs:
       - name: 배포 산출물 구성
         run: |
           set -euo pipefail
-          rm -rf deploy && mkdir -p deploy
+          rm -rf deploy && mkdir -p deploy/build
 
           # 빌드한 모듈 버전. service.sh 가 읽는다(compose 는 .env 만 본다).
           printf "%s\n" \
@@ -107,7 +107,7 @@ jobs:
                         monglife-discovery-app-gateway \
                         monglife-discovery-app-common-api
           do
-            cp "apps/${module}/build/libs/${module}.jar" deploy/
+            cp "apps/${module}/build/libs/${module}.jar" deploy/build
           done
 
           ls -al deploy
