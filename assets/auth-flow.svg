@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" width="1200" height="440" role="img" aria-label="MongLife Discovery 인증 인가 흐름">
+  <style>
+    text{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+    .bg{fill:#ffffff}
+    .box{fill:#ffffff;stroke:#d8dee4;stroke-width:1.5}
+    .box-a{fill:#f2f7ff;stroke:#4c8bf5;stroke-width:1.75}
+    .box-c{fill:#fff7ec;stroke:#e0a03a;stroke-width:1.75}
+    .name{fill:#1f2328;font-size:14px;font-weight:650}
+    .sub{fill:#818b98;font-size:9.5px}
+    .life{fill:none;stroke:#d8dee4;stroke-width:1.3;stroke-dasharray:3 5}
+    .lna{fill:none;stroke:#4c8bf5;stroke-width:1.8}
+    .lnd{fill:none;stroke:#b3bac4;stroke-width:1.4;stroke-dasharray:5 4}
+    .lbla{fill:#3b7ae0;font-size:10.5px}
+    .lbl{fill:#8f98a3;font-size:10.5px}
+    .step{fill:#818b98;font-size:10px;font-weight:700;letter-spacing:.06em}
+    .mk-a{fill:#4c8bf5}
+    .mk-m{fill:#b3bac4}
+    @media (prefers-color-scheme:dark){
+      .bg{fill:#0d1117}
+      .box{fill:#161b22;stroke:#30363d}
+      .box-a{fill:#11203a;stroke:#4c8bf5}
+      .box-c{fill:#2a2013;stroke:#d29922}
+      .name{fill:#e6edf3}
+      .sub{fill:#7d8590}
+      .life{stroke:#2a313c}
+      .lna{stroke:#589bff}
+      .lnd{stroke:#484f58}
+      .lbla{fill:#79b8ff}
+      .lbl{fill:#6e7681}
+      .step{fill:#7d8590}
+      .mk-a{fill:#589bff}
+      .mk-m{fill:#484f58}
+    }
+  </style>
+  <defs>
+    <marker id="ba" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0.5,1 L9,5 L0.5,9 Z" class="mk-a"/>
+    </marker>
+    <marker id="bm" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0.5,1 L9,5 L0.5,9 Z" class="mk-m"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="440"/>
+
+  <!-- lifelines -->
+  <path class="life" d="M 140 80 V 412"/>
+  <path class="life" d="M 440 80 V 412"/>
+  <path class="life" d="M 740 80 V 412"/>
+  <path class="life" d="M 1040 80 V 412"/>
+
+  <!-- headers -->
+  <rect class="box-c" x="40"  y="26" width="200" height="54" rx="10"/>
+  <text class="name" x="140" y="49" text-anchor="middle">App Client</text>
+  <text class="sub"  x="140" y="66" text-anchor="middle">Android</text>
+
+  <rect class="box-a" x="340" y="26" width="200" height="54" rx="10"/>
+  <text class="name" x="440" y="49" text-anchor="middle">Gateway</text>
+  <text class="sub"  x="440" y="66" text-anchor="middle">:8000</text>
+
+  <rect class="box-a" x="640" y="26" width="200" height="54" rx="10"/>
+  <text class="name" x="740" y="49" text-anchor="middle">Common API</text>
+  <text class="sub"  x="740" y="66" text-anchor="middle">:8010 /api</text>
+
+  <rect class="box" x="940" y="26" width="200" height="54" rx="10"/>
+  <text class="name" x="1040" y="49" text-anchor="middle">서비스 API</text>
+  <text class="sub"  x="1040" y="66" text-anchor="middle">MONGS-CHARACTER · USER</text>
+
+  <!-- 1. 로그인 -->
+  <text class="step" x="36" y="112">1 · 로그인</text>
+  <path class="lna" d="M 140 126 H 740" marker-end="url(#ba)"/>
+  <text class="lbla" x="440" y="118" text-anchor="middle">POST /api/public/auth/login</text>
+  <path class="lnd" d="M 740 162 H 140" marker-end="url(#bm)"/>
+  <text class="lbl" x="440" y="154" text-anchor="middle">accessToken · refreshToken</text>
+
+  <!-- 2. 인증된 요청 -->
+  <text class="step" x="36" y="196">2 · 인증된 요청</text>
+  <path class="lna" d="M 140 210 H 440" marker-end="url(#ba)"/>
+  <text class="lbla" x="290" y="202" text-anchor="middle">GET /api/character/**  ·  Authorization: Bearer</text>
+
+  <path class="lna" d="M 440 246 H 740" marker-end="url(#ba)"/>
+  <text class="lbla" x="590" y="238" text-anchor="middle">/verify/accessToken  ←  AuthenticationFilter</text>
+
+  <path class="lna" d="M 440 282 H 740" marker-end="url(#ba)"/>
+  <text class="lbla" x="590" y="274" text-anchor="middle">/passport  ←  GeneratePassportFilter</text>
+
+  <path class="lnd" d="M 740 318 H 440" marker-end="url(#bm)"/>
+  <text class="lbl" x="590" y="310" text-anchor="middle">PassportVo (Account + AppVersion)</text>
+
+  <path class="lna" d="M 440 354 H 1040" marker-end="url(#ba)"/>
+  <text class="lbla" x="740" y="346" text-anchor="middle">원 요청 + passport 헤더 (URL-encoded JSON)</text>
+
+  <path class="lnd" d="M 1040 390 H 140" marker-end="url(#bm)"/>
+  <text class="lbl" x="590" y="382" text-anchor="middle">응답</text>
+</svg>

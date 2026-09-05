@@ -9,48 +9,7 @@ Java 17 / Spring Boot 3.1.1 / Spring Cloud 2022.0.3 / Gradle 8.5 멀티모듈.
 
 ## 🛠 System Architecture
 
-```mermaid
-flowchart TB
-    client["📱 Android App Client"]
-
-    subgraph discovery["monglife-discovery (한 스택으로 함께 뜬다)"]
-        eureka["<b>Eureka</b><br/>monglife-eureka<br/>:8761 (mgmt :7761)"]
-        gateway["<b>Gateway</b><br/>monglife-gateway<br/>:8000 (mgmt :7000)"]
-        common["<b>Common API</b><br/>monglife-common<br/>:8010 /api (mgmt :7010)"]
-    end
-
-    subgraph services["서비스 애플리케이션 (별도 저장소)"]
-        character["MONGS-CHARACTER"]
-        user["MONGS-USER"]
-    end
-
-    subgraph infra["Infra (storage-net)"]
-        mysql[("MySQL")]
-        redis[("Redis")]
-        kafka[["Kafka"]]
-    end
-
-    fcm(["Firebase FCM"])
-
-    client -->|"/api/**  + AccessToken"| gateway
-    client -->|"/api/public/auth/**<br/>/api/public/userDevice/**"| common
-
-    gateway -->|"WebClient · 토큰 검증 / 패스포트 발급"| common
-    gateway -->|"passport 헤더를 실어 라우팅"| character
-    gateway --> user
-
-    gateway -.->|register / discover| eureka
-    common -.-> eureka
-    character -.-> eureka
-    user -.-> eureka
-
-    common --> mysql
-    common --> redis
-    kafka -->|"<프로파일>.notification.mongs"| common
-    common --> fcm
-```
-
-> 기존 개념도: ![디스커버리 아키텍처](assets/architecture_discovery.png)
+![MongLife Discovery 시스템 아키텍처](assets/architecture.svg)
 
 ### 인증 / 인가 흐름
 
@@ -59,24 +18,7 @@ flowchart TB
 `monglife-module-common-security` 의 `PassportFilter` 로 그 헤더를 읽어 Spring Security
 `UserDetails` 를 만든다.
 
-```mermaid
-sequenceDiagram
-    participant C as App Client
-    participant G as Gateway
-    participant A as Common API
-    participant S as 서비스 API
-
-    C->>A: POST /api/public/auth/login
-    A-->>C: accessToken / refreshToken
-
-    C->>G: GET /api/character/... (Authorization: Bearer …)
-    G->>A: GET /api/public/auth/verify/accessToken   (AuthenticationFilter)
-    A-->>G: 유효성 결과
-    G->>A: GET /api/public/auth/passport             (GeneratePassportFilter)
-    A-->>G: PassportVo (Account + AppVersion)
-    G->>S: 원 요청 + passport 헤더 (URL-encoded JSON)
-    S-->>C: 응답
-```
+![인증 · 인가 흐름](assets/auth-flow.svg)
 
 `PassportVo` 에 담기는 것:
 
