@@ -57,7 +57,7 @@ jobs:
     name: Discovery 배포
     needs: ci
     runs-on: ubuntu-latest
-    environment: product
+    environment: ${{ env.deploy_env }}
     steps:
       # configs 서브모듈의 배포 자산이 필요하다. 소스는 다시 받지만 빌드는 하지 않는다.
       - name: 소스 코드 로드
