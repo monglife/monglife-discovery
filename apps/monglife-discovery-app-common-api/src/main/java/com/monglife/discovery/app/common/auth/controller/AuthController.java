@@ -1,17 +1,15 @@
 package com.monglife.discovery.app.common.auth.controller;
 
 import com.monglife.core.dto.response.ResponseDto;
+import com.monglife.core.enums.role.RoleCode;
 import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
 import com.monglife.discovery.app.common.auth.dto.etc.*;
+import com.monglife.discovery.app.common.auth.dto.request.*;
 import com.monglife.discovery.app.common.auth.dto.response.*;
-import com.monglife.discovery.app.common.userDevice.service.UserDeviceService;
-import com.monglife.discovery.app.common.auth.dto.request.JoinRequestDto;
-import com.monglife.discovery.app.common.auth.dto.request.LoginRequestDto;
-import com.monglife.discovery.app.common.auth.dto.request.LogoutRequestDto;
-import com.monglife.discovery.app.common.auth.dto.request.ReissueRequestDto;
 import com.monglife.discovery.app.common.auth.enums.AuthResponse;
 import com.monglife.discovery.app.common.auth.service.AuthService;
+import com.monglife.discovery.app.common.userDevice.service.UserDeviceService;
 import com.monglife.module.common.logging.annotation.EntryLoggingPoint;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -39,11 +37,29 @@ public class AuthController {
     @PostMapping("/join")
     public ResponseEntity<ResponseDto<?>> join(@Valid @RequestBody JoinRequestDto joinRequestDto) {
 
+        String socialAccountId = joinRequestDto.getSocialAccountId();
         String email = joinRequestDto.getEmail();
         String name = joinRequestDto.getName();
-        String socialAccountId = joinRequestDto.getSocialAccountId();
 
-        authService.join(email, name, socialAccountId);
+        authService.join(email, name, socialAccountId, RoleCode.NORMAL.getRole());
+
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_JOIN.toResponseDto());
+    }
+
+    /**
+     * 비회원 가입
+     * @param joinAnonymousRequestDto 회원 가입 정보 Dto
+     * @return 성공 응답
+     */
+    @EntryLoggingPoint
+    @PostMapping("/join/anonymous")
+    public ResponseEntity<ResponseDto<?>> joinAnonymous(@Valid @RequestBody JoinAnonymousRequestDto joinAnonymousRequestDto) {
+
+        String socialAccountId = joinAnonymousRequestDto.getDeviceId();
+        String email = socialAccountId + "@anonymous.com";
+        String name = "anonymous(" + socialAccountId + ")";
+
+        authService.join(email, name, socialAccountId, RoleCode.ANONYMOUSE.getRole());
 
         return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_JOIN.toResponseDto());
     }
@@ -65,6 +81,84 @@ public class AuthController {
         String buildVersion = loginRequestDto.getBuildVersion();
 
         LoginDto loginDto = authService.login(deviceId, socialAccountId, email, appPackageName, deviceName, buildVersion);
+
+        // 기기 연결
+        userDeviceService.connectAndroidDevice(loginDto.getAccountId(), deviceId);
+
+        LoginResponseDto loginResponseDto = LoginResponseDto.builder()
+                .accountId(loginDto.getAccountId())
+                .accessToken(loginDto.getAccessToken())
+                .refreshToken(loginDto.getRefreshToken())
+                .build();
+
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_LOGIN.toResponseDto(loginResponseDto));
+    }
+
+    /**
+     * 비회원 로그인
+     * @param loginRequestDto 로그인 정보 Dto
+     * @return 토큰 정보 Dto
+     */
+    @EntryLoggingPoint
+    @PostMapping("/login/anonymous")
+    public ResponseEntity<ResponseDto<LoginResponseDto>> loginAnonymous(@Valid @RequestBody LoginRequestDto loginRequestDto) {
+
+        String deviceId = loginRequestDto.getDeviceId();
+        String email = loginRequestDto.getEmail();
+        String socialAccountId = loginRequestDto.getSocialAccountId();
+        String appPackageName = loginRequestDto.getAppPackageName();
+        String deviceName = loginRequestDto.getDeviceName();
+        String buildVersion = loginRequestDto.getBuildVersion();
+
+        LoginDto loginDto = authService.login(deviceId, socialAccountId, email, appPackageName, deviceName, buildVersion);
+
+        // 기기 연결
+        userDeviceService.connectAndroidDevice(loginDto.getAccountId(), deviceId);
+
+        LoginResponseDto loginResponseDto = LoginResponseDto.builder()
+                .accountId(loginDto.getAccountId())
+                .accessToken(loginDto.getAccessToken())
+                .refreshToken(loginDto.getRefreshToken())
+                .build();
+
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_LOGIN.toResponseDto(loginResponseDto));
+    }
+
+    /**
+     * credential 방식 회원 가입
+     * @param credentialJoinRequestDto 회원 가입 정보 Dto
+     * @return 성공 응답
+     */
+    @EntryLoggingPoint
+    @PostMapping("/join/credential")
+    public ResponseEntity<ResponseDto<?>> joinWithCredential(@Valid @RequestBody CredentialJoinRequestDto credentialJoinRequestDto) {
+
+        String idToken = credentialJoinRequestDto.getIdToken();
+        String socialAccountId = credentialJoinRequestDto.getSocialAccountId();
+        String name = credentialJoinRequestDto.getName();
+
+        authService.joinWithCredential(idToken, socialAccountId, name);
+
+        return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_AUTH_JOIN.toResponseDto());
+    }
+
+    /**
+     * credential 방식 로그인
+     * @param credentialLoginRequestDto 로그인 정보 Dto
+     * @return 토큰 정보 Dto
+     */
+    @EntryLoggingPoint
+    @PostMapping("/login/credential")
+    public ResponseEntity<ResponseDto<LoginResponseDto>> loginWithCredential(@Valid @RequestBody CredentialLoginRequestDto credentialLoginRequestDto) {
+
+        String idToken = credentialLoginRequestDto.getIdToken();
+        String socialAccountId = credentialLoginRequestDto.getSocialAccountId();
+        String deviceId = credentialLoginRequestDto.getDeviceId();
+        String appPackageName = credentialLoginRequestDto.getAppPackageName();
+        String deviceName = credentialLoginRequestDto.getDeviceName();
+        String buildVersion = credentialLoginRequestDto.getBuildVersion();
+
+        LoginDto loginDto = authService.loginWithCredential(idToken, socialAccountId, deviceId, appPackageName, deviceName, buildVersion);
 
         // 기기 연결
         userDeviceService.connectAndroidDevice(loginDto.getAccountId(), deviceId);

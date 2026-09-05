@@ -5,8 +5,11 @@ import com.monglife.core.vo.passport.PassportDataAccountVo;
 import com.monglife.core.vo.passport.PassportDataAppVersionVo;
 import com.monglife.discovery.app.common.auth.dto.etc.*;
 import com.monglife.discovery.app.common.auth.exception.NeedUpdateAppException;
+import com.monglife.discovery.app.common.auth.exception.SocialAccountMismatchException;
 import com.monglife.discovery.app.common.auth.exception.TokenExpiredException;
+import com.monglife.discovery.app.common.global.provider.GoogleIdTokenProvider;
 import com.monglife.discovery.app.common.global.provider.TokenProvider;
+import com.monglife.discovery.app.common.global.vo.GoogleIdentityVo;
 import com.monglife.discovery.domain.account.service.AccountService;
 import com.monglife.discovery.domain.account.service.LoginHistoryService;
 import com.monglife.discovery.domain.account.service.TokenService;
@@ -35,20 +38,23 @@ public class AuthService {
 
     private final TokenProvider tokenProvider;
 
+    private final GoogleIdTokenProvider googleIdTokenProvider;
+
     /**
      * 회원 가입
      * @param email 이메일
      * @param name 이름
      * @param socialAccountId 구글 계정 ID
+     * @param role 권한
      */
     @Transactional
-    public void join(String email, String name, String socialAccountId) {
+    public void join(String email, String name, String socialAccountId, String role) {
 
         AccountVo accountVo = AccountVo.builder()
                 .email(email)
                 .name(name)
                 .socialAccountId(socialAccountId)
-                .role(RoleCode.NORMAL.getRole())
+                .role(role)
                 .build();
 
         accountService.createAccount(accountVo);
@@ -70,31 +76,45 @@ public class AuthService {
         // 앱 버전 체크
         if (appVersionService.getAppVersion(appPackageName, buildVersion).getMustUpdate()) {
             throw new NeedUpdateAppException();
-        };
+        }
 
         // 회원 조회
         AccountVo accountVo = accountService.getAccount(email);
 
-        // 소셜 로그인 ID 업데이트 (이전 사용자)
-        if (accountVo.getSocialAccountId().isBlank()) {
+        // 소셜 로그인 ID 업데 이트 (이전 사용자)
+        if (accountVo.getSocialAccountId() == null || accountVo.getSocialAccountId().isBlank()) {
             accountService.updateSocialAccountId(accountVo.getEmail(), socialAccountId);
         }
 
+        return issueLogin(accountVo.getAccountId(), deviceId, appPackageName, deviceName, buildVersion);
+    }
+
+    /**
+     * 세션 발급 (기존 세션 삭제 -> 토큰 발급 -> 세션 등록 -> 로그인 카운트 증가)
+     * @param accountId 회원 ID
+     * @param deviceId 기기 ID
+     * @param appPackageName 앱 패키지 명
+     * @param deviceName 기기명
+     * @param buildVersion 앱 빌드 버전
+     * @return 로그인 정보 Dto
+     */
+    private LoginDto issueLogin(Long accountId, String deviceId, String appPackageName, String deviceName, String buildVersion) {
+
         // 존재 세션 삭제
-        tokenService.deleteToken(accountVo.getAccountId(), deviceId);
+        tokenService.deleteToken(accountId, deviceId);
 
         // RefreshToken 발급
         String refreshToken = tokenProvider.generateRefreshToken();
 
         // AccessToken 발급
-        String accessToken = tokenProvider.generateAccessToken(accountVo.getAccountId(), deviceId, appPackageName, buildVersion);
+        String accessToken = tokenProvider.generateAccessToken(accountId, deviceId, appPackageName, buildVersion);
 
         // 새로운 세션 등록
         tokenService.createToken(TokenVo.builder()
                 .refreshToken(refreshToken)
                 .accessToken(accessToken)
                 .deviceId(deviceId)
-                .accountId(accountVo.getAccountId())
+                .accountId(accountId)
                 .appPackageName(appPackageName)
                 .buildVersion(buildVersion)
                 .createdAt(LocalDateTime.now())
@@ -103,7 +123,7 @@ public class AuthService {
 
         // 로그인 카운트 1 증가
         loginHistoryService.patchLoginHistory(LoginHistoryVo.builder()
-                .accountId(accountVo.getAccountId())
+                .accountId(accountId)
                 .deviceId(deviceId)
                 .appPackageName(appPackageName)
                 .deviceName(deviceName)
@@ -111,10 +131,75 @@ public class AuthService {
                 .build());
 
         return LoginDto.builder()
-                .accountId(accountVo.getAccountId())
+                .accountId(accountId)
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
+    }
+
+    /**
+     * credential 방식 로그인
+     * body 가 아닌 검증된 ID 토큰의 클레임으로 계정을 특정한다.
+     * @param idToken 구글 ID 토큰
+     * @param socialAccountId 구글 계정 ID (토큰의 sub 와 대조용)
+     * @param deviceId 기기 ID
+     * @param appPackageName 앱 패키지 명
+     * @param deviceName 기기명
+     * @param buildVersion 앱 빌드 버전
+     * @return 로그인 정보 Dto
+     */
+    @Transactional
+    public LoginDto loginWithCredential(String idToken, String socialAccountId, String deviceId, String appPackageName, String deviceName, String buildVersion) {
+
+        // 신뢰 경계. DB 조회보다 먼저 검증해 쓰레기 요청에 DB 를 낭비하지 않는다
+        GoogleIdentityVo googleIdentityVo = googleIdTokenProvider.verify(idToken);
+
+        // body 의 socialAccountId 는 같은 ID 토큰의 sub 여야 한다
+        if (!googleIdentityVo.getSocialAccountId().equals(socialAccountId)) {
+            throw new SocialAccountMismatchException();
+        }
+
+        // 앱 버전 체크
+        if (appVersionService.getAppVersion(appPackageName, buildVersion).getMustUpdate()) {
+            throw new NeedUpdateAppException();
+        }
+
+        // 회원 조회 (검증된 email 로)
+        AccountVo accountVo = accountService.getAccount(googleIdentityVo.getEmail());
+
+        // 소셜 로그인 ID 정합성 확인 및 업데이트 (이전 사용자)
+        String storedSocialAccountId = accountVo.getSocialAccountId();
+
+        if (storedSocialAccountId == null || storedSocialAccountId.isBlank()) {
+            accountService.updateSocialAccountId(accountVo.getEmail(), googleIdentityVo.getSocialAccountId());
+        } else if (!storedSocialAccountId.equals(googleIdentityVo.getSocialAccountId())) {
+            // 같은 이메일을 쓰는 다른 구글 계정
+            throw new SocialAccountMismatchException();
+        }
+
+        return issueLogin(accountVo.getAccountId(), deviceId, appPackageName, deviceName, buildVersion);
+    }
+
+    /**
+     * credential 방식 회원 가입
+     * @param idToken 구글 ID 토큰
+     * @param socialAccountId 구글 계정 ID (토큰의 sub 와 대조용)
+     * @param name 이름 (토큰에 name 클레임이 없을 때 사용)
+     */
+    @Transactional
+    public void joinWithCredential(String idToken, String socialAccountId, String name) {
+
+        GoogleIdentityVo googleIdentityVo = googleIdTokenProvider.verify(idToken);
+
+        if (!googleIdentityVo.getSocialAccountId().equals(socialAccountId)) {
+            throw new SocialAccountMismatchException();
+        }
+
+        String resolvedName = googleIdentityVo.getName() == null || googleIdentityVo.getName().isBlank()
+                ? name
+                : googleIdentityVo.getName();
+
+        join(googleIdentityVo.getEmail(), resolvedName, googleIdentityVo.getSocialAccountId(), RoleCode.NORMAL.getRole());
     }
 
     /**

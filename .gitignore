@@ -41,6 +41,9 @@ out/
 **/src/*/resources/*-*.yml
 **/src/*/resources/*.json
 **/src/*/resources/*.xml
+**/src/*/resources/*.sql
 
 ### log ###
 logs/
+### macOS ###
+.DS_Store

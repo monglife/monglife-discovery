@@ -5,6 +5,9 @@ dependencies {
     // mysql
     runtimeOnly "com.mysql:mysql-connector-j"
 
+    // h2 (local 프로파일 전용)
+    runtimeOnly "com.h2database:h2"
+
     // queryDSL
     implementation "com.querydsl:querydsl-jpa:5.0.0:jakarta"
     annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties["querydsl.version"]}:jakarta"

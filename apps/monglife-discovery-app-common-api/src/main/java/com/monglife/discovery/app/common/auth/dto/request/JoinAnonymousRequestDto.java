@@ -11,25 +11,15 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class JoinRequestDto {
+public class JoinAnonymousRequestDto {
 
     @NotEmpty
     @NotBlank
     @Email
-    private String email;
-
-    @NotEmpty
-    @NotBlank
-    private String name;
-
-    @NotEmpty
-    @NotBlank
-    private String socialAccountId;
+    private String deviceId;
 
     @Builder
-    public JoinRequestDto(String email, String name, String socialAccountId) {
-        this.email = email;
-        this.name = name;
-        this.socialAccountId = socialAccountId;
+    public JoinAnonymousRequestDto(String deviceId) {
+        this.deviceId = deviceId;
     }
 }

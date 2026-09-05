@@ -4,8 +4,8 @@ buildscript {
         springDependencyManagementVersion = "1.1.4"
         acuatorVersion                    = "3.2.1"
         lombokVersion                     = "1.18.30"
-        monglifeCoreVersion               = "2.0.11"
-        monglifeModuleCommonVersion       = "2.1.0"
+        monglifeCoreVersion               = "2.1.0"
+        monglifeModuleCommonVersion       = "2.2.4"
         logstashVersion                   = "7.4"
     }
 }
@@ -22,15 +22,11 @@ bootJar {
 
 subprojects {
     group = "com.monglife.discovery"
-    version = "2.1.0"
+    version = "3.0.0"
 
     repositories {
         mavenCentral()
         maven { url "https://jitpack.io" }
-    }
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_17
     }
 
     tasks.register("copyPrivate", DefaultTask) {
@@ -48,6 +44,7 @@ subprojects {
                     include("*.yml")
                     include("*.json")
                     include("*.xml")
+                    include("*.sql")
                 }
 
                 project.copy {
@@ -55,6 +52,7 @@ subprojects {
                         include("*.yml")
                         include("*.json")
                         include("*.xml")
+                        include("*.sql")
                     }
                     into("src/main/resources")
                 }

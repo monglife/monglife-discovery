@@ -1,96 +1,87 @@
 name: CD PRODUCT
+
+# cd-stg.yml 과 짝이다. 다른 것은 아래 넷뿐이다.
+#   name / on.push.branches / env.deploy_env / jobs.deploy.environment
+# 한쪽을 고치면 다른 쪽도 같이 고친다.
+#
+# 실제 처리 과정은 .github/actions/ci/build-test 와 .github/actions/cd/deploy 에 있다.
+# 이 파일은 트리거와 job 배선만 가진다.
+
 on:
   push:
     branches:
       - release
+  workflow_dispatch:
+
 permissions:
   contents: read
   checks: write
-  pull-requests: write
+
 env:
-  common-path: ./apps/monglife-discovery-app-common-api
-  gateway-path: ./apps/monglife-discovery-app-gateway
-  common: monglife-discovery-common
-  gateway: monglife-discovery-gateway
-  docker-path: ~/docker
-  service-script: ~/batch/service.sh
+  # 배포 대상 환경. configs 서브모듈의 deploy/<환경>/ 과 GitHub Environment 이름이 같다.
+  deploy_env: product
+  # 서버의 배포 디렉터리 (홈 기준). configs 의 deploy/<환경>/service/ 트리가 ~/service/ 로 간다.
+  remote_dir: service/discovery
+
 jobs:
-  # 빌드 및 배포
-  discovery-deploy:
+  # 배포 전 게이트. 테스트가 깨지면 deploy job 이 아예 시작되지 않아
+  # 서버에 SSH 로 붙기 전에 멈춘다.
+  ci:
+    name: 빌드·테스트
     runs-on: ubuntu-latest
-    environment: product
+    # environment 를 걸지 않는다. ci-*.yml 세 개가 environment 없이 secrets.ACTION_TOKEN 으로
+    # 프라이빗 서브모듈을 받고 있으므로 ACTION_TOKEN 은 저장소(또는 org) 레벨 시크릿이다.
+    # 덕분에 배포 시크릿(HOST/SSH_KEY)은 아래 deploy job 에만 노출된다.
+    # 만약 여기서 서브모듈 체크아웃이 실패하면 ACTION_TOKEN 이 Environment 에만 있다는 뜻이니
+    # 이 job 에도 environment 를 붙인다(값은 아래 deploy job 과 같다).
+    outputs:
+      eureka: ${{ steps.build.outputs.eureka_version }}
+      gateway: ${{ steps.build.outputs.gateway_version }}
+      common_api: ${{ steps.build.outputs.common_api_version }}
     steps:
-      # 소스 로드
+      # 소스 로드 (configs 서브모듈 포함)
       - name: 소스 코드 로드
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.ACTION_TOKEN }}
           submodules: true
-      # Java 환경 설정
-      - name: JDK 설정
-        uses: actions/setup-java@v3
+
+      # 빌드·테스트하고 jar 세 개를 artifact 로 올린다.
+      - name: Discovery 빌드·테스트
+        id: build
+        uses: ./.github/actions/ci/build-test
         with:
-          distribution: 'zulu'
-          java-version: '17'
-      # gradlew 권한 변경
-      - name: Gradle 권한 부여
-        run: chmod +x gradlew
-      # 환경 설정 파일 로드
-      - name: 환경 설정 파일 로드
-        run: ./gradlew copyPrivate
-      # Discovery Common API 빌드
-      - name: Discovery Common API 모듈 빌드
-        run: ./gradlew :apps:monglife-discovery-app-common-api:build
-      # Discovery Gateway 빌드
-      - name: Discovery Gateway 모듈 빌드
-        run: ./gradlew :apps:monglife-discovery-app-gateway:build
-      # 레포트 생성
-      - name: 테스트 리포트 작성
-        uses: mikepenz/action-junit-report@v5
-        if: success() || failure()
+          artifact_name: discovery-jars
+
+  deploy:
+    name: Discovery 배포
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: product
+    steps:
+      # configs 서브모듈의 배포 자산이 필요하다. 소스는 다시 받지만 빌드는 하지 않는다.
+      - name: 소스 코드 로드
+        uses: actions/checkout@v4
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
-      # 배포 파일 원격 복사
-      - name: Discovery Common API 배포 파일 Product 서버로 전송
-        uses: appleboy/scp-action@v1
+          token: ${{ secrets.ACTION_TOKEN }}
+          submodules: true
+
+      - name: 빌드 산출물 내려받기
+        uses: actions/download-artifact@v4
         with:
+          name: discovery-jars
+          path: jars
+
+      - name: Discovery 배포
+        uses: ./.github/actions/cd/deploy
+        with:
+          deploy_env: ${{ env.deploy_env }}
+          remote_dir: ${{ env.remote_dir }}
+          jar_dir: jars
+          eureka_version: ${{ needs.ci.outputs.eureka }}
+          gateway_version: ${{ needs.ci.outputs.gateway }}
+          common_api_version: ${{ needs.ci.outputs.common_api }}
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "${{ env.common-path }}/build/libs/*.jar"
-          target: "${{ env.docker-path }}"
-          strip_components: 4
-          timeout: '120s'
-      # 배포 스크립트 실행
-      - name: Discovery Common API 서비스 실행
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HOST }}
-          port: ${{ secrets.PORT }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            bash ${{ env.service-script }} restart ${{ env.gateway }}
-      # 배포 파일 원격 복사
-      - name: Discovery Gateway 배포 파일 Product 서버로 전송
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.HOST }}
-          port: ${{ secrets.PORT }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "${{ env.gateway-path }}/build/libs/*.jar"
-          target: "${{ env.docker-path }}"
-          strip_components: 4
-          timeout: '120s'
-      # 배포 스크립트 실행
-      - name: Discovery Gateway 서비스 실행
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HOST }}
-          port: ${{ secrets.PORT }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            bash ${{ env.service-script }} restart ${{ env.gateway }}
+          ssh_key: ${{ secrets.SSH_KEY }}
