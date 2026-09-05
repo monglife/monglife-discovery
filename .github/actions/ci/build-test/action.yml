@@ -93,6 +93,10 @@ runs:
 
     # upload-artifact 는 glob 의 공통 조상 경로를 보존한다. apps/*/build/libs/*.jar 를 그대로 올리면
     # 받는 쪽이 apps/<모듈>/build/libs/ 로 풀려 버리므로, 먼저 한곳에 평평하게 모은다.
+    #
+    # ⚠ 디렉터리 이름을 점으로 시작하면 안 된다. upload-artifact 는 v4.4.0 부터 숨김 파일을
+    #   기본 제외해서(include-hidden-files: false), `.ci-jars/` 로 두면 glob 결과가 0건이 되고
+    #   "No files were found with the provided path" 로 끊긴다.
     - name: jar 모으기
       if: inputs.artifact_name != ''
       shell: bash
@@ -100,18 +104,18 @@ runs:
         MODULES: ${{ inputs.modules }}
       run: |
         set -euo pipefail
-        rm -rf .ci-jars && mkdir -p .ci-jars
+        rm -rf ci-jars && mkdir -p ci-jars
         for m in $MODULES; do
           n="monglife-discovery-app-$m"
-          cp "apps/$n/build/libs/$n.jar" .ci-jars/
+          cp "apps/$n/build/libs/$n.jar" ci-jars/
         done
-        ls -al .ci-jars
+        ls -al ci-jars
 
     - name: jar 업로드
       if: inputs.artifact_name != ''
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact_name }}
-        path: .ci-jars/
+        path: ci-jars/
         retention-days: 1
         if-no-files-found: error

@@ -130,7 +130,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 
 | 브랜치 | 워크플로 | 동작 |
 |---|---|---|
-| `develop` | `ci-common` / `ci-gateway` / `ci-eureka` | 빌드·테스트 |
+| `develop` | `ci` | 세 모듈 빌드·테스트 (matrix) |
 | `stage` | `cd-stg` | 빌드·테스트 → STAGE 서버 배포 |
 | `release` | `cd-prd` | 빌드·테스트 → 운영 배포 |
 
@@ -142,7 +142,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
     ci/build-test/action.yml   빌드·테스트·JUnit 리포트·버전 추출·jar 업로드
     cd/deploy/action.yml       .version 생성 → 산출물 구성 → scp → service.sh up
   workflows/                트리거와 job 배선만
-    ci-common.yml  ci-eureka.yml  ci-gateway.yml
+    ci.yml         모듈 셋을 matrix 로 가른다
     cd-stg.yml     cd-prd.yml
 ```
 
@@ -152,9 +152,18 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 >
 > 액션 폴더 이름이 `build-test` 인 것은 `.gitignore` 의 `build/` 때문이다. `ci/build/` 로 두면
 > **`git add` 가 조용히 건너뛴다.** 새 액션 폴더를 만들 때 `git status` 에 뜨는지 확인할 것.
+>
+> 같은 이유로 **artifact 로 올릴 디렉터리는 점으로 시작하면 안 된다.** `upload-artifact` 는
+> v4.4.0 부터 숨김 파일을 기본 제외해서(`include-hidden-files: false`), `.ci-jars/` 로 두면
+> glob 결과가 0건이 되고 `No files were found with the provided path` 로 끊긴다.
 
-여섯 워크플로가 액션 둘을 공유한다. **본문을 고칠 일이 있으면 액션을 고친다.** 워크플로 파일에는
+세 워크플로가 액션 둘을 공유한다. **본문을 고칠 일이 있으면 액션을 고친다.** 워크플로 파일에는
 트리거·`environment`·입력값만 있어서, 예전처럼 "한쪽만 고치고 다른 쪽을 빠뜨리는" 사고가 나지 않는다.
+
+**파이프라인은 모듈별로 쪼개지 않는다.** 쪼개는 것은 모듈을 따로 릴리스할 수 있을 때 의미가 있는데,
+세 서비스는 `docker-compose.yml` 하나로 같이 뜨고 `service.sh up` 이 통째로 재기동한다. 배포 단위가
+하나다. 그래서 `ci.yml` 도 파일 하나이고, 어느 모듈이 깨졌는지는 matrix 로 갈라 보여 준다.
+(CD 의 `ci` job 은 jar 셋을 artifact 하나로 묶어야 해서 matrix 로 가르지 않고 한 job 이다)
 
 로컬 액션(`uses: ./.github/actions/...`)은 워크스페이스에서 읽히므로 **`actions/checkout` 이 먼저
 와야 한다.** 그래서 체크아웃 스텝만 워크플로 파일에 남아 있다. composite action 안에서는 `secrets`
@@ -167,7 +176,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 `discovery-jars` artifact 로 두 job 사이를 건넌다.
 
 `ci` job 에는 `environment` 를 걸지 않는다. 배포 시크릿(`HOST` / `SSH_KEY`)이 `deploy` job 에만
-노출되게 하려는 것이다. `ACTION_TOKEN` 은 `ci-*.yml` 이 그러듯 저장소 레벨 시크릿이라 전제한다 —
+노출되게 하려는 것이다. `ACTION_TOKEN` 은 `ci.yml` 이 그러듯 저장소 레벨 시크릿이라 전제한다 —
 `ci` job 의 서브모듈 체크아웃이 실패한다면 그 토큰이 Environment 에만 있다는 뜻이니, 그때는 `ci`
 job 에도 `environment` 를 붙인다.
 
