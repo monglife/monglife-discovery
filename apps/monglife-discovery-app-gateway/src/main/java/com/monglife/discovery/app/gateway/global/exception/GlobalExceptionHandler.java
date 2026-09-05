@@ -1,5 +1,6 @@
 package com.monglife.discovery.app.gateway.global.exception;
 
+import org.springframework.web.server.ResponseStatusException;
 import com.monglife.core.dto.response.ResponseDto;
 import com.monglife.core.enums.error.ErrorCode;
 import com.monglife.core.enums.response.GlobalResponse;
@@ -77,6 +78,9 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
             return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL, Collections.emptyMap(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } else if (e instanceof ResponseStatusException) {
+            loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
+            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL, Collections.emptyMap(), HttpStatus.NOT_FOUND);
         } else {
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
