@@ -80,7 +80,7 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
             return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL, Collections.emptyMap(), HttpStatus.INTERNAL_SERVER_ERROR);
         } else if (e instanceof ResponseStatusException) {
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
-            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_CONNECT_FAIL, Collections.emptyMap(), HttpStatus.NOT_FOUND);
+            return setErrorResponse(exchange, GatewayErrorCode.DISCOVERY_GATEWAY_NOT_FOUND, Collections.emptyMap(), HttpStatus.NOT_FOUND);
         } else {
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.CONSOLE_LOGGER);
             loggingUtil.printErrorLog(exceptionLogDto, LoggerType.LOGSTASH_LOGGER);
