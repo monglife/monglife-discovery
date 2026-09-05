@@ -154,7 +154,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
   storage/                       MySQL / Redis / MQTT / Zookeeper / Kafka
   elk/                           Elasticsearch / Logstash / Kibana. **stage 에만 있다**
   monitor/                       Prometheus / Grafana. **stage 에만 있다**
-  nginx/                         리버스 프록시(단일 인그레스). **product 에만 있다**
+  edge/                          리버스 프록시(nginx). 단일 인그레스. **product 에만 있다**
   service/
     discovery/                   ← 배포 대상
       .env                       서버에서만 관리. 워크플로가 전송하지 않는다
@@ -181,7 +181,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 - 네트워크는 전부 external 이고 **서브넷을 `.compose` 에 고정**한다(`storage-net:20.0.0.0/24`
   처럼). 안 박으면 도커가 그때 비어 있는 /16 을 집어, 다시 만들 때 대역이 바뀌고 MySQL 의
   `'exporter'@'20.0.0.%'` 같은 접속 출처 제한이 조용히 깨진다.
-  `edge-net`(앞단 — 세 앱과 nginx 가 함께 붙는다)은 없으면 만들고,
+  `service-net`(프록시 공유)은 없으면 만들고,
   **`storage-net`(MySQL/Redis/Kafka)은 만들지 않고 없으면 중단한다.** 빈 네트워크가 생기면
   컨테이너 이름 DNS 가 조용히 실패하기 때문이다.
 - **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
