@@ -154,6 +154,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
   storage/                       MySQL / Redis / MQTT / Zookeeper / Kafka
   elk/                           Elasticsearch / Logstash / Kibana. **stage 에만 있다**
   monitor/                       Prometheus / Grafana. **stage 에만 있다**
+  nginx/                         리버스 프록시(단일 인그레스). **product 에만 있다**
   service/
     discovery/                   ← 배포 대상
       .env                       서버에서만 관리. 워크플로가 전송하지 않는다
@@ -164,13 +165,12 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
       .dockerignore            │
       .version                 ┘ 빌드한 모듈 버전. 워크플로가 만든다
       build/monglife-discovery-app-{eureka,gateway,common-api}.jar
-    nginx/                       리버스 프록시. **product 에만 있다**
   tool/                          Portainer / mailserver. **stage 에만 있다**
 ```
 
 - **두 환경의 구조가 완전히 같지는 않다.** discovery / storage 는 같고, `nginx` 는 product 에만,
-  `elk` · `monitor` · `tool` 은 stage 에만 있다. `service/` 아래에 있는 것은 CD 대상인
-  `discovery` 와 인그레스인 `nginx` 뿐이고, 나머지 스택은 환경 루트에 바로 놓인다.
+  `elk` · `monitor` · `tool` 은 stage 에만 있다. **`service/` 아래에는 CD 가 배포하는 것만 둔다**
+  — 지금은 `discovery` 하나뿐이고, 나머지 스택은 전부 환경 루트에 바로 놓인다.
 - **인그레스는 product nginx 하나다.** stage 에는 nginx 가 없다. `stg.*` 도메인은 product 가
   TLS 를 종단한 뒤 사설망으로 stage 호스트에 넘기고, `mail` 은 nginx 의 `stream` 블록이
   L4 로 패스스루한다. 그래서 **stage discovery 가 호스트에 퍼블리시하는 포트가 실제 진입점**이며,
@@ -181,7 +181,7 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 - 네트워크는 전부 external 이고 **서브넷을 `.compose` 에 고정**한다(`storage-net:20.0.0.0/24`
   처럼). 안 박으면 도커가 그때 비어 있는 /16 을 집어, 다시 만들 때 대역이 바뀌고 MySQL 의
   `'exporter'@'20.0.0.%'` 같은 접속 출처 제한이 조용히 깨진다.
-  `service-net`(프록시 공유)은 없으면 만들고,
+  `edge-net`(앞단 — 세 앱과 nginx 가 함께 붙는다)은 없으면 만들고,
   **`storage-net`(MySQL/Redis/Kafka)은 만들지 않고 없으면 중단한다.** 빈 네트워크가 생기면
   컨테이너 이름 DNS 가 조용히 실패하기 때문이다.
 - **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
