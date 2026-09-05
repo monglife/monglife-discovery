@@ -21,7 +21,7 @@ permissions:
 
 env:
   # 배포 대상 환경. configs 서브모듈의 deploy/<환경>/ 과 GitHub Environment 이름이 같다.
-  deploy_env: product
+  deploy_env: stage
   # 서버의 배포 디렉터리 (홈 기준). configs 의 deploy/<환경>/service/ 트리가 ~/service/ 로 간다.
   remote_dir: service/discovery
 
