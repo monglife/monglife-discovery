@@ -131,10 +131,45 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 | 브랜치 | 워크플로 | 동작 |
 |---|---|---|
 | `develop` | `ci-common` / `ci-gateway` / `ci-eureka` | 빌드·테스트 |
-| `stage` | `cd-stg` | STAGE 서버 배포 |
-| `release` | `cd-prd` | 운영 배포 |
+| `stage` | `cd-stg` | 빌드·테스트 → STAGE 서버 배포 |
+| `release` | `cd-prd` | 빌드·테스트 → 운영 배포 |
+
+### 워크플로 파일은 트리거만, 처리 과정은 composite action 에 있다
+
+```
+.github/
+  actions/
+    ci/build-test/action.yml   빌드·테스트·JUnit 리포트·버전 추출·jar 업로드
+    cd/deploy/action.yml       .version 생성 → 산출물 구성 → scp → service.sh up
+  workflows/                트리거와 job 배선만
+    ci-common.yml  ci-eureka.yml  ci-gateway.yml
+    cd-stg.yml     cd-prd.yml
+```
+
+> ⚠ **`.github/workflows/` 하위 폴더는 GitHub 이 읽지 않는다.** `workflows/ci/`, `workflows/cd/`
+> 로 옮기면 에러 없이 **조용히 전부 실행되지 않는다.** composite action 은 경로 제약이 없어서
+> `ci` / `cd` 분리를 `.github/actions/` 쪽에 두었다.
+>
+> 액션 폴더 이름이 `build-test` 인 것은 `.gitignore` 의 `build/` 때문이다. `ci/build/` 로 두면
+> **`git add` 가 조용히 건너뛴다.** 새 액션 폴더를 만들 때 `git status` 에 뜨는지 확인할 것.
+
+여섯 워크플로가 액션 둘을 공유한다. **본문을 고칠 일이 있으면 액션을 고친다.** 워크플로 파일에는
+트리거·`environment`·입력값만 있어서, 예전처럼 "한쪽만 고치고 다른 쪽을 빠뜨리는" 사고가 나지 않는다.
+
+로컬 액션(`uses: ./.github/actions/...`)은 워크스페이스에서 읽히므로 **`actions/checkout` 이 먼저
+와야 한다.** 그래서 체크아웃 스텝만 워크플로 파일에 남아 있다. composite action 안에서는 `secrets`
+컨텍스트를 쓸 수 없어 접속 정보를 input 으로 넘기고, `environment` 도 설정할 수 없어 job 에 남긴다.
 
 ### STAGE / PRODUCT (`cd-stg` / `cd-prd`)
+
+두 job 이다. **`ci` 가 빌드·테스트하고 `deploy` 가 `needs: ci` 로 그 뒤에 붙는다.** 테스트가 깨지면
+`deploy` 는 시작조차 하지 않아 서버에 SSH 로 붙기 전에 멈춘다. 빌드는 한 번만 하고, jar 세 개는
+`discovery-jars` artifact 로 두 job 사이를 건넌다.
+
+`ci` job 에는 `environment` 를 걸지 않는다. 배포 시크릿(`HOST` / `SSH_KEY`)이 `deploy` job 에만
+노출되게 하려는 것이다. `ACTION_TOKEN` 은 `ci-*.yml` 이 그러듯 저장소 레벨 시크릿이라 전제한다 —
+`ci` job 의 서브모듈 체크아웃이 실패한다면 그 토큰이 Environment 에만 있다는 뜻이니, 그때는 `ci`
+job 에도 `environment` 를 붙인다.
 
 빌드 → `~/service/discovery` 로 전송 → 서버의 **`./service.sh up`** 호출이다.
 워크플로가 compose 를 직접 부르지 않는다. 사전 검사(필수 키·로그 디렉터리·네트워크·jar 존재)와
@@ -176,8 +211,9 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
   L4 로 패스스루한다. 그래서 **stage discovery 가 호스트에 퍼블리시하는 포트가 실제 진입점**이며,
   방화벽에서 product 에서만 닿도록 막아야 한다.
 - 시크릿은 GitHub Environment(`stage` / `product`)에 둔다. 이름은 양쪽 같다:
-  `HOST` `PORT` `USERNAME` `SSH_KEY` `ACTION_TOKEN`. 두 워크플로는 이름·브랜치·`environment`·
-  `deploy_env` 만 다르고 나머지가 동일하므로, 한쪽을 고치면 다른 쪽도 같이 고친다.
+  `HOST` `PORT` `USERNAME` `SSH_KEY` `ACTION_TOKEN`. 두 워크플로는 `name` · 트리거 브랜치 ·
+  `env.deploy_env` · `jobs.deploy.environment` 넷만 다르고 나머지는 액션이 처리하므로,
+  **넷 중 하나를 고칠 때만** 양쪽을 같이 본다.
 - 네트워크는 전부 external 이고 **서브넷을 `.compose` 에 고정**한다(`storage-net:20.0.0.0/24`
   처럼). 안 박으면 도커가 그때 비어 있는 /16 을 집어, 다시 만들 때 대역이 바뀌고 MySQL 의
   `'exporter'@'20.0.0.%'` 같은 접속 출처 제한이 조용히 깨진다.

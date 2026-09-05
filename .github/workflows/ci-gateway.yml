@@ -1,5 +1,8 @@
 name: CI GATEWAY
 
+# 실제 처리 과정은 .github/actions/ci/build-test 에 있다. 세 ci-*.yml 이 같은 액션을 쓰고
+# modules / test_report 만 다르다. 이 파일은 트리거와 job 배선만 가진다.
+
 on:
   push:
     branches:
@@ -22,19 +25,8 @@ jobs:
           token: ${{ secrets.ACTION_TOKEN }}
           submodules: true
 
-      - name: JDK 설정
-        uses: actions/setup-java@v4
+      - name: Discovery Gateway 빌드 테스트
+        uses: ./.github/actions/ci/build-test
         with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: gradle
-
-      - name: Gradle 권한 부여
-        run: chmod +x gradlew
-
-      # 설정을 서브모듈에서 각 모듈 리소스로 복사
-      - name: 환경 설정 파일 로드
-        run: ./gradlew copyPrivate
-
-      - name: Discovery Gateway 모듈 빌드
-        run: ./gradlew --no-daemon :apps:monglife-discovery-app-gateway:build
+          modules: gateway
+          test_report: 'false'

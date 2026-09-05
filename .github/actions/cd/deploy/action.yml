@@ -1,0 +1,138 @@
+name: Discovery 배포
+description: >
+  configs/deploy/<환경>/service/discovery 의 배포 자산과 빌드한 jar 을 서버로 보내고
+  서버의 ./service.sh up 을 호출한다. cd-stg.yml / cd-prd.yml 이 모두 이 액션 하나를 쓴다.
+
+# ⚠ composite action 안에서는 secrets 컨텍스트를 쓸 수 없다. 그래서 접속 정보를 input 으로 받는다.
+#   등록된 시크릿 값이므로 로그 마스킹은 그대로 걸린다.
+# ⚠ composite action 은 environment 를 설정할 수 없다. environment 는 호출하는 job 에 남는다.
+# ⚠ 이 액션은 워크스페이스에서 읽히므로 **호출하는 워크플로가 먼저 actions/checkout 을 해야 한다.**
+#   configs 서브모듈의 배포 자산이 필요하므로 submodules: true 로 받아야 한다.
+
+inputs:
+  deploy_env:
+    description: '배포 대상 환경. configs 서브모듈의 deploy/<환경>/ 과 GitHub Environment 이름이 같다. stage | product'
+    required: true
+  remote_dir:
+    description: '서버의 배포 디렉터리 (홈 기준). configs 의 deploy/<환경>/service/ 트리가 ~/service/ 로 간다.'
+    required: false
+    default: 'service/discovery'
+  jar_dir:
+    description: 'jar 세 개가 평평하게 들어 있는 디렉터리. ci job 의 artifact 를 download-artifact 로 푼 경로.'
+    required: false
+    default: 'jars'
+  eureka_version:
+    description: 'eureka 모듈 버전. .version 에 쓴다.'
+    required: true
+  gateway_version:
+    description: 'gateway 모듈 버전. .version 에 쓴다.'
+    required: true
+  common_api_version:
+    description: 'common-api 모듈 버전. .version 에 쓴다.'
+    required: true
+  host:
+    description: '배포 서버 호스트'
+    required: true
+  port:
+    description: '배포 서버 SSH 포트'
+    required: true
+  username:
+    description: '배포 서버 계정'
+    required: true
+  ssh_key:
+    description: '배포 서버 SSH 개인키'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # 서버 ~/service/discovery 에 그대로 펼쳐질 디렉터리를 만든다.
+    # .env 는 **서버에서만 관리한다.** 여기서 보내면 서버의 계정 설정을 덮어쓴다.
+    # 공용 ~/global/.env 도 다른 스택과 공유하는 자산이라 보내지 않는다.
+    - name: 배포 산출물 구성
+      shell: bash
+      env:
+        DEPLOY_ENV: ${{ inputs.deploy_env }}
+        JAR_DIR: ${{ inputs.jar_dir }}
+        EUREKA_VERSION: ${{ inputs.eureka_version }}
+        GATEWAY_VERSION: ${{ inputs.gateway_version }}
+        COMMON_API_VERSION: ${{ inputs.common_api_version }}
+      run: |
+        set -euo pipefail
+
+        # 버전이 비면 compose 의 이미지 태그가 "monglife-discovery-eureka:" 가 되어 깨진다.
+        # 서버의 service.sh 가 .compose 의 STACK_REQUIRED_KEYS 로 막아 주지만,
+        # 러너에서 먼저 끊는 편이 로그를 읽기 훨씬 쉽다.
+        for v in "$EUREKA_VERSION" "$GATEWAY_VERSION" "$COMMON_API_VERSION"; do
+          [ -n "$v" ] || { echo "::error::모듈 버전이 비었습니다. ci job 의 버전 추출 스텝을 확인하세요."; exit 1; }
+        done
+
+        rm -rf deploy && mkdir -p deploy/build
+
+        # 빌드한 모듈 버전. service.sh 가 읽는다(compose 는 .env 만 본다).
+        printf "%s\n" \
+          "MONGLIFE_DISCOVERY_EUREKA_VERSION=${EUREKA_VERSION}" \
+          "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${GATEWAY_VERSION}" \
+          "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${COMMON_API_VERSION}" \
+          > deploy/.version
+
+        src="configs/deploy/${DEPLOY_ENV}/service/discovery"
+
+        cp "$src/docker-compose.yml"      deploy/
+        cp "$src/spring-boot-docker-file" deploy/
+        cp "$src/.dockerignore"           deploy/
+        cp "$src/.compose"                deploy/
+        cp "$src/service.sh"              deploy/
+        chmod +x deploy/*.sh
+
+        # jar 은 ci job 이 artifact 로 넘긴다. .env 의 *_BIN_FILE 이 build/<모듈>.jar 라 build/ 아래로.
+        for module in monglife-discovery-app-eureka \
+                      monglife-discovery-app-gateway \
+                      monglife-discovery-app-common-api
+        do
+          cp "${JAR_DIR}/${module}.jar" deploy/build
+        done
+
+        ls -al deploy deploy/build
+
+    # deploy/ 한 겹만 벗겨 ~/service/discovery 아래로.
+    # dotfile 은 deploy/* 에 잡히지 않아 따로 나열한다.
+    - name: 배포 산출물 서버로 전송
+      uses: appleboy/scp-action@v1
+      with:
+        host: ${{ inputs.host }}
+        port: ${{ inputs.port }}
+        username: ${{ inputs.username }}
+        key: ${{ inputs.ssh_key }}
+        source: "deploy/*,deploy/.dockerignore,deploy/.compose,deploy/.version"
+        target: "~/${{ inputs.remote_dir }}"
+        strip_components: 1
+        overwrite: true
+        timeout: '600s'
+
+    - name: Discovery 서비스 기동
+      uses: appleboy/ssh-action@v1
+      with:
+        host: ${{ inputs.host }}
+        port: ${{ inputs.port }}
+        username: ${{ inputs.username }}
+        key: ${{ inputs.ssh_key }}
+        command_timeout: '30m'
+        script: |
+          cd ~/${{ inputs.remote_dir }}
+
+          # 사전 검사(필수 키·로그 디렉터리·네트워크·jar 존재)와 기동 확인은 모두
+          # service.sh 가 한다. 서버에서 손으로 돌릴 때도 같은 검사를 받도록 한곳에 모았다.
+          # scp 가 실행 비트를 보존하지 못하는 경우가 있어 다시 세운다.
+          chmod +x ./service.sh
+
+          # ssh-action 의 script_stop 에 기대지 않고 종료 코드를 직접 본다.
+          # 마지막 명령(prune)의 코드가 스텝 결과가 되어 버려서, 기동이 1 로 끝나도
+          # "Successfully executed" 로 초록불이 뜬 적이 있다.
+          if ! ./service.sh up; then
+            echo "::error::discovery 스택 기동에 실패했습니다. 위 컨테이너 로그를 확인하세요."
+            exit 1
+          fi
+
+          # dangling 이미지만 정리 (-a 는 같은 서버의 다른 서비스 이미지까지 지운다)
+          docker image prune -f

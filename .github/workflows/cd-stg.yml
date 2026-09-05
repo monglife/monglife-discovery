@@ -1,8 +1,11 @@
 name: CD STAGE
 
-# cd-prd.yml 과 본문이 완전히 같다. 다른 것은 아래 넷뿐이다.
-#   name / on.push.branches / env.deploy_env / jobs.discovery-deploy.environment
+# cd-prd.yml 과 짝이다. 다른 것은 아래 넷뿐이다.
+#   name / on.push.branches / env.deploy_env / jobs.deploy.environment
 # 한쪽을 고치면 다른 쪽도 같이 고친다.
+#
+# 실제 처리 과정은 .github/actions/ci/build-test 와 .github/actions/cd/deploy 에 있다.
+# 이 파일은 트리거와 job 배선만 가진다.
 
 on:
   push:
@@ -21,10 +24,20 @@ env:
   remote_dir: service/discovery
 
 jobs:
-  discovery-deploy:
-    name: Discovery 배포
+  # 배포 전 게이트. 테스트가 깨지면 deploy job 이 아예 시작되지 않아
+  # 서버에 SSH 로 붙기 전에 멈춘다.
+  ci:
+    name: 빌드·테스트
     runs-on: ubuntu-latest
-    environment: stage
+    # environment 를 걸지 않는다. ci-*.yml 세 개가 environment 없이 secrets.ACTION_TOKEN 으로
+    # 프라이빗 서브모듈을 받고 있으므로 ACTION_TOKEN 은 저장소(또는 org) 레벨 시크릿이다.
+    # 덕분에 배포 시크릿(HOST/SSH_KEY)은 아래 deploy job 에만 노출된다.
+    # 만약 여기서 서브모듈 체크아웃이 실패하면 ACTION_TOKEN 이 Environment 에만 있다는 뜻이니
+    # 이 job 에도 environment 를 붙인다(값은 아래 deploy job 과 같다).
+    outputs:
+      eureka: ${{ steps.build.outputs.eureka_version }}
+      gateway: ${{ steps.build.outputs.gateway_version }}
+      common_api: ${{ steps.build.outputs.common_api_version }}
     steps:
       # 소스 로드 (configs 서브모듈 포함)
       - name: 소스 코드 로드
@@ -33,117 +46,42 @@ jobs:
           token: ${{ secrets.ACTION_TOKEN }}
           submodules: true
 
-      - name: JDK 설정
-        uses: actions/setup-java@v4
+      # 빌드·테스트하고 jar 세 개를 artifact 로 올린다.
+      - name: Discovery 빌드·테스트
+        id: build
+        uses: ./.github/actions/ci/build-test
         with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: gradle
+          artifact_name: discovery-jars
 
-      - name: Gradle 권한 부여
-        run: chmod +x gradlew
-
-      # 설정을 서브모듈에서 각 모듈 리소스로 복사
-      - name: 환경 설정 파일 로드
-        run: ./gradlew copyPrivate
-
-      # 모듈 버전 추출
-      - name: Get module versions
-        id: versions
-        run: |
-          EUREKA_VERSION=$(./gradlew :apps:monglife-discovery-app-eureka:properties -q | grep "^version:" | awk '{print $2}')
-          GATEWAY_VERSION=$(./gradlew :apps:monglife-discovery-app-gateway:properties -q | grep "^version:" | awk '{print $2}')
-          COMMON_API_VERSION=$(./gradlew :apps:monglife-discovery-app-common-api:properties -q | grep "^version:" | awk '{print $2}')
-          
-          echo "eureka=$EUREKA_VERSION" >> "$GITHUB_OUTPUT"
-          echo "gateway=$GATEWAY_VERSION" >> "$GITHUB_OUTPUT"
-          echo "common-api=$COMMON_API_VERSION" >> "$GITHUB_OUTPUT"
-
-      # 세 앱 모듈 빌드. bootJar 이름이 <모듈명>.jar 로 고정돼 있어
-      # .env 의 *_BIN_FILE 값과 그대로 맞는다.
-      - name: Discovery 모듈 빌드
-        run: |
-          ./gradlew --no-daemon \
-            :apps:monglife-discovery-app-eureka:build \
-            :apps:monglife-discovery-app-gateway:build \
-            :apps:monglife-discovery-app-common-api:build
-
-      - name: 테스트 리포트 작성
-        uses: mikepenz/action-junit-report@v5
-        if: success() || failure()
+  deploy:
+    name: Discovery 배포
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: stage
+    steps:
+      # configs 서브모듈의 배포 자산이 필요하다. 소스는 다시 받지만 빌드는 하지 않는다.
+      - name: 소스 코드 로드
+        uses: actions/checkout@v4
         with:
-          report_paths: '**/build/test-results/test/TEST-*.xml'
+          token: ${{ secrets.ACTION_TOKEN }}
+          submodules: true
 
-      # 서버 ~/service/discovery 에 그대로 펼쳐질 디렉터리를 만든다.
-      # .env 는 **서버에서만 관리한다.** 여기서 보내면 서버의 계정 설정을 덮어쓴다.
-      # 공용 ~/global/.env 도 다른 스택과 공유하는 자산이라 보내지 않는다.
-      - name: 배포 산출물 구성
-        run: |
-          set -euo pipefail
-          rm -rf deploy && mkdir -p deploy/build
-
-          # 빌드한 모듈 버전. service.sh 가 읽는다(compose 는 .env 만 본다).
-          printf "%s\n" \
-            "MONGLIFE_DISCOVERY_EUREKA_VERSION=${{ steps.versions.outputs.eureka }}" \
-            "MONGLIFE_DISCOVERY_GATEWAY_VERSION=${{ steps.versions.outputs.gateway }}" \
-            "MONGLIFE_DISCOVERY_COMMON_API_VERSION=${{ steps.versions.outputs.common-api }}" \
-            > deploy/.version
-
-          src="configs/deploy/${{ env.deploy_env }}/service/discovery"
-
-          cp "$src/docker-compose.yml"      deploy/
-          cp "$src/spring-boot-docker-file" deploy/
-          cp "$src/.dockerignore"           deploy/
-          cp "$src/.compose"                deploy/
-          cp "$src/service.sh"              deploy/
-          chmod +x deploy/*.sh
-
-          for module in monglife-discovery-app-eureka \
-                        monglife-discovery-app-gateway \
-                        monglife-discovery-app-common-api
-          do
-            cp "apps/${module}/build/libs/${module}.jar" deploy/build
-          done
-
-          ls -al deploy
-
-      # deploy/ 한 겹만 벗겨 ~/service/discovery 아래로
-      - name: 배포 산출물 서버로 전송
-        uses: appleboy/scp-action@v1
+      - name: 빌드 산출물 내려받기
+        uses: actions/download-artifact@v4
         with:
+          name: discovery-jars
+          path: jars
+
+      - name: Discovery 배포
+        uses: ./.github/actions/cd/deploy
+        with:
+          deploy_env: ${{ env.deploy_env }}
+          remote_dir: ${{ env.remote_dir }}
+          jar_dir: jars
+          eureka_version: ${{ needs.ci.outputs.eureka }}
+          gateway_version: ${{ needs.ci.outputs.gateway }}
+          common_api_version: ${{ needs.ci.outputs.common_api }}
           host: ${{ secrets.HOST }}
           port: ${{ secrets.PORT }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          source: "deploy/*,deploy/.dockerignore,deploy/.compose,deploy/.version"
-          target: "~/${{ env.remote_dir }}"
-          strip_components: 1
-          overwrite: true
-          timeout: '600s'
-
-      - name: Discovery 서비스 기동
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HOST }}
-          port: ${{ secrets.PORT }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          command_timeout: '30m'
-          script: |
-            cd ~/${{ env.remote_dir }}
-
-            # 사전 검사(필수 키·로그 디렉터리·네트워크·jar 존재)와 기동 확인은 모두
-            # service.sh 가 한다. 서버에서 손으로 돌릴 때도 같은 검사를 받도록 한곳에 모았다.
-            # scp 가 실행 비트를 보존하지 못하는 경우가 있어 다시 세운다.
-            chmod +x ./service.sh
-
-            # ssh-action 의 script_stop 에 기대지 않고 종료 코드를 직접 본다.
-            # 마지막 명령(prune)의 코드가 스텝 결과가 되어 버려서, 기동이 1 로 끝나도
-            # "Successfully executed" 로 초록불이 뜬 적이 있다.
-            if ! ./service.sh up; then
-              echo "::error::discovery 스택 기동에 실패했습니다. 위 컨테이너 로그를 확인하세요."
-              exit 1
-            fi
-
-            # dangling 이미지만 정리 (-a 는 같은 서버의 다른 서비스 이미지까지 지운다)
-            docker image prune -f
+          ssh_key: ${{ secrets.SSH_KEY }}

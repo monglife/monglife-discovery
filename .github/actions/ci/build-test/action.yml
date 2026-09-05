@@ -1,0 +1,117 @@
+name: Discovery 빌드·테스트
+description: >
+  configs 서브모듈의 설정을 각 모듈 리소스로 복사한 뒤 지정한 앱 모듈을 빌드·테스트한다.
+  ci-*.yml 세 개와 cd-*.yml 의 ci job 이 모두 이 액션 하나를 쓴다.
+
+# ⚠ 이 액션은 워크스페이스에서 읽히므로 **호출하는 워크플로가 먼저 actions/checkout 을 해야 한다.**
+#   그래서 체크아웃 스텝은 여기가 아니라 워크플로 파일에 남아 있다.
+
+inputs:
+  modules:
+    description: >
+      빌드할 앱 모듈. `monglife-discovery-app-` 뒤의 이름을 공백으로 나열한다.
+      예) "eureka gateway common-api"
+    required: false
+    default: 'eureka gateway common-api'
+  test_report:
+    description: >
+      JUnit 리포트 스텝 실행 여부. 테스트는 현재 common-api 에만 있다. 다른 모듈에
+      테스트를 추가한다면 그 모듈 build.gradle 에 useJUnitPlatform() 을 넣고 여기를 'true' 로 바꾼다.
+      리포트를 켜는 워크플로는 `permissions: checks: write` 가 필요하다.
+    required: false
+    default: 'true'
+  artifact_name:
+    description: >
+      비우면 업로드하지 않는다. 지정하면 빌드한 jar 을 한 디렉터리에 평평하게 모아 그 이름으로 올린다.
+      CD 의 ci job 이 deploy job 에 jar 을 넘길 때 쓴다.
+    required: false
+    default: ''
+
+outputs:
+  eureka_version:
+    description: 'eureka 모듈 버전. 빌드하지 않았으면 빈 문자열'
+    value: ${{ steps.versions.outputs.eureka_version }}
+  gateway_version:
+    description: 'gateway 모듈 버전. 빌드하지 않았으면 빈 문자열'
+    value: ${{ steps.versions.outputs.gateway_version }}
+  common_api_version:
+    description: 'common-api 모듈 버전. 빌드하지 않았으면 빈 문자열'
+    value: ${{ steps.versions.outputs.common_api_version }}
+
+runs:
+  using: composite
+  steps:
+    - name: JDK 설정
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        cache: gradle
+
+    - name: Gradle 권한 부여
+      shell: bash
+      run: chmod +x gradlew
+
+    # 설정을 서브모듈에서 각 모듈 리소스로 복사
+    - name: 환경 설정 파일 로드
+      shell: bash
+      run: ./gradlew copyPrivate
+
+    # bootJar 이름이 <모듈명>.jar 로 고정돼 있어 .env 의 *_BIN_FILE 값과 그대로 맞는다.
+    # 모듈이 여럿이면 태스크를 모아 한 번에 돌린다(Gradle 기동 비용을 한 번만 낸다).
+    - name: Discovery 모듈 빌드
+      shell: bash
+      env:
+        MODULES: ${{ inputs.modules }}
+      run: |
+        set -euo pipefail
+        tasks=""
+        for m in $MODULES; do
+          tasks="$tasks :apps:monglife-discovery-app-$m:build"
+        done
+        # shellcheck disable=SC2086
+        ./gradlew --no-daemon $tasks
+
+    - name: 테스트 리포트 작성
+      if: inputs.test_report == 'true' && (success() || failure())
+      uses: mikepenz/action-junit-report@v5
+      with:
+        report_paths: '**/build/test-results/test/TEST-*.xml'
+
+    # CD 가 .version 을 만들 때 쓴다. 출력 키는 하이픈을 밑줄로 바꾼다(common-api → common_api_version).
+    - name: 모듈 버전 추출
+      id: versions
+      shell: bash
+      env:
+        MODULES: ${{ inputs.modules }}
+      run: |
+        set -euo pipefail
+        for m in $MODULES; do
+          v=$(./gradlew ":apps:monglife-discovery-app-$m:properties" -q | grep "^version:" | awk '{print $2}')
+          echo "${m//-/_}_version=$v" >> "$GITHUB_OUTPUT"
+        done
+
+    # upload-artifact 는 glob 의 공통 조상 경로를 보존한다. apps/*/build/libs/*.jar 를 그대로 올리면
+    # 받는 쪽이 apps/<모듈>/build/libs/ 로 풀려 버리므로, 먼저 한곳에 평평하게 모은다.
+    - name: jar 모으기
+      if: inputs.artifact_name != ''
+      shell: bash
+      env:
+        MODULES: ${{ inputs.modules }}
+      run: |
+        set -euo pipefail
+        rm -rf .ci-jars && mkdir -p .ci-jars
+        for m in $MODULES; do
+          n="monglife-discovery-app-$m"
+          cp "apps/$n/build/libs/$n.jar" .ci-jars/
+        done
+        ls -al .ci-jars
+
+    - name: jar 업로드
+      if: inputs.artifact_name != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: .ci-jars/
+        retention-days: 1
+        if-no-files-found: error
