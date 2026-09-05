@@ -13,6 +13,14 @@ subprojects {
     apply plugin: "org.springframework.boot"
     apply plugin: "io.spring.dependency-management"
 
+    // 실행 JDK 와 무관하게 17 바이트코드를 낸다. 배포 이미지가 eclipse-temurin:17-jre 라
+    // 21 로 컴파일되면 UnsupportedClassVersionError 로 기동에 실패한다.
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
     jar {
         enabled(false)
     }

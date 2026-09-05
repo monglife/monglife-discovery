@@ -22,15 +22,11 @@ bootJar {
 
 subprojects {
     group = "com.monglife.discovery"
-    version = "2.1.0"
+    version = "3.0.0"
 
     repositories {
         mavenCentral()
         maven { url "https://jitpack.io" }
-    }
-
-    java {
-        sourceCompatibility = JavaVersion.VERSION_17
     }
 
     tasks.register("copyPrivate", DefaultTask) {

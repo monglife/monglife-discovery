@@ -1,0 +1,55 @@
+name: CI
+
+# ci-common / ci-gateway / ci-eureka 세 파일을 matrix 하나로 합친 것이다.
+# 세 파일 모두 paths 필터가 없어 develop 푸시마다 어차피 셋 다 돌았고, 본문도 모듈명만 달랐다.
+#
+# 파이프라인을 모듈별로 쪼개는 것은 모듈을 **따로 릴리스할 수 있을 때** 의미가 있다.
+# 이 스택은 docker-compose 하나로 세 서비스가 같이 뜨고 service.sh up 이 통째로 재기동하므로
+# 배포 단위는 하나다. 그래서 파일도 하나로 두고, 어느 모듈이 깨졌는지는 matrix 로 갈라 보인다.
+#
+# 실제 처리 과정은 .github/actions/ci/build-test 에 있다. cd-stg / cd-prd 의 ci job 도 같은 액션을 쓴다.
+# (다만 CD 쪽은 jar 세 개를 artifact 하나로 묶어 넘겨야 해서 matrix 로 가르지 않고 한 job 이다)
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build-test:
+    name: Discovery ${{ matrix.label }} 빌드 테스트
+    runs-on: ubuntu-latest
+    strategy:
+      # 한 모듈이 깨져도 나머지를 끝까지 돌린다. 한 번에 전부 보려는 것이다.
+      fail-fast: false
+      matrix:
+        include:
+          # 테스트는 현재 common-api 에만 있다. 다른 모듈에 추가한다면 그 모듈 build.gradle 에
+          # useJUnitPlatform() 을 넣고 여기 test_report 를 'true' 로 바꾼다.
+          - module: common-api
+            label: Common API
+            test_report: 'true'
+          - module: gateway
+            label: Gateway
+            test_report: 'false'
+          - module: eureka
+            label: Eureka
+            test_report: 'false'
+    steps:
+      # 소스 로드 (configs 서브모듈 포함)
+      - name: 소스 코드 로드
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ACTION_TOKEN }}
+          submodules: true
+
+      - name: Discovery ${{ matrix.label }} 빌드·테스트
+        uses: ./.github/actions/ci/build-test
+        with:
+          modules: ${{ matrix.module }}
+          test_report: ${{ matrix.test_report }}

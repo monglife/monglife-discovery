@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="MongLife Discovery 시스템 아키텍처">
+  <style>
+    text{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+    .bg{fill:#ffffff}
+    .grp{fill:none;stroke:#d8dee4;stroke-width:1.5;stroke-dasharray:6 5}
+    .grpl{fill:#818b98;font-size:11.5px}
+    .box{fill:#ffffff;stroke:#d8dee4;stroke-width:1.5}
+    .box-a{fill:#f2f7ff;stroke:#4c8bf5;stroke-width:1.75}
+    .box-c{fill:#fff7ec;stroke:#e0a03a;stroke-width:1.75}
+    .name{fill:#1f2328;font-size:15px;font-weight:650}
+    .name-s{fill:#1f2328;font-size:12.5px;font-weight:650}
+    .kick{fill:#818b98;font-size:9px;letter-spacing:.09em;font-weight:700}
+    .meta{fill:#5b6470;font-size:10.5px}
+    .sub{fill:#818b98;font-size:10px}
+    .lna{fill:none;stroke:#4c8bf5;stroke-width:1.8;stroke-linejoin:miter}
+    .lnd{fill:none;stroke:#b3bac4;stroke-width:1.4;stroke-dasharray:5 4}
+    .lbl{fill:#5b6470;font-size:10px}
+    .lbla{fill:#3b7ae0;font-size:10px}
+    .lblm{fill:#8f98a3;font-size:9.5px}
+    .dot{fill:#4c8bf5}
+    .mk-a{fill:#4c8bf5}
+    .mk-m{fill:#b3bac4}
+    @media (prefers-color-scheme:dark){
+      .bg{fill:#0d1117}
+      .grp{stroke:#2a313c}
+      .grpl{fill:#7d8590}
+      .box{fill:#161b22;stroke:#30363d}
+      .box-a{fill:#11203a;stroke:#4c8bf5}
+      .box-c{fill:#2a2013;stroke:#d29922}
+      .name,.name-s{fill:#e6edf3}
+      .kick{fill:#7d8590}
+      .meta{fill:#adbac7}
+      .sub{fill:#7d8590}
+      .lna{stroke:#589bff}
+      .lnd{stroke:#484f58}
+      .lbl{fill:#8b949e}
+      .lbla{fill:#79b8ff}
+      .lblm{fill:#6e7681}
+      .dot{fill:#589bff}
+      .mk-a{fill:#589bff}
+      .mk-m{fill:#484f58}
+    }
+  </style>
+  <defs>
+    <marker id="aa" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0.5,1 L9,5 L0.5,9 Z" class="mk-a"/>
+    </marker>
+    <marker id="am" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0.5,1 L9,5 L0.5,9 Z" class="mk-m"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="800"/>
+
+  <!-- ── groups ─────────────────────────────────────────── -->
+  <rect class="grp" x="70"  y="150" width="1060" height="320" rx="14"/>
+  <text class="grpl" x="1114" y="172" text-anchor="end">monglife-discovery — docker-compose 한 스택으로 함께 뜬다</text>
+
+  <rect class="grp" x="70"  y="560" width="420" height="160" rx="14"/>
+  <text class="grpl" x="86" y="706">서비스 애플리케이션 (별도 저장소)</text>
+
+  <rect class="grp" x="540" y="560" width="590" height="160" rx="14"/>
+  <text class="grpl" x="556" y="706">인프라 · 외부 서비스</text>
+
+  <!-- ── edges ──────────────────────────────────────────── -->
+  <!-- eureka registration bus -->
+  <path class="lnd" d="M 300 350 V 284" marker-end="url(#am)"/>
+  <path class="lnd" d="M 520 350 V 318 H 300"/>
+  <path class="lnd" d="M 110 650 H 44 V 242 H 210" marker-end="url(#am)"/>
+  <circle class="mk-m" cx="300" cy="318" r="3"/>
+  <text class="lblm" x="312" y="306">register / discover</text>
+
+  <!-- client -> gateway -->
+  <path class="lna" d="M 460 106 V 140 H 155 V 350" marker-end="url(#aa)"/>
+  <text class="lbla" x="452" y="133" text-anchor="end">AccessToken 을 실어 요청</text>
+
+  <!-- client -> common api -->
+  <path class="lna" d="M 690 106 V 350" marker-end="url(#aa)"/>
+  <text class="lbla" x="702" y="212">로그인 · 회원가입 · 기기 등록</text>
+  <text class="lbl"  x="702" y="228">게이트웨이를 거치지 않고 직접 호출</text>
+
+  <!-- gateway -> common api -->
+  <path class="lna" d="M 360 425 H 490" marker-end="url(#aa)"/>
+  <text class="lbla" x="425" y="394" text-anchor="middle">WebClient</text>
+  <text class="lbl"  x="425" y="408" text-anchor="middle">토큰 검증 · 패스포트</text>
+
+  <!-- gateway -> services -->
+  <path class="lna" d="M 235 450 V 545 H 200 V 615" marker-end="url(#aa)"/>
+  <path class="lna" d="M 235 545 H 385 V 615" marker-end="url(#aa)"/>
+  <circle class="dot" cx="235" cy="545" r="3.2"/>
+  <text class="lbla" x="247" y="506">passport 헤더를 실어 라우팅</text>
+
+  <!-- common api -> infra -->
+  <path class="lna" d="M 772 450 V 615" marker-end="url(#aa)"/>
+  <path class="lna" d="M 790 425 H 909 V 615" marker-end="url(#aa)"/>
+  <path class="lna" d="M 790 405 H 1046 V 615" marker-end="url(#aa)"/>
+  <path class="lna" d="M 635 615 V 450" marker-end="url(#aa)"/>
+  <text class="lblm" x="627" y="530" text-anchor="end">notification.mongs 구독</text>
+  <text class="lblm" x="1054" y="500">푸시 발송</text>
+
+  <!-- ── boxes ──────────────────────────────────────────── -->
+  <!-- client -->
+  <rect class="box-c" x="420" y="40" width="310" height="66" rx="10"/>
+  <text class="name" x="575" y="70" text-anchor="middle">Android App Client</text>
+  <text class="sub"  x="575" y="88" text-anchor="middle">MongLife 앱</text>
+
+  <!-- eureka -->
+  <rect class="box-a" x="210" y="200" width="210" height="84" rx="10"/>
+  <text class="kick" x="315" y="221" text-anchor="middle">SERVICE REGISTRY</text>
+  <text class="name" x="315" y="244" text-anchor="middle">Eureka</text>
+  <text class="meta" x="315" y="263" text-anchor="middle">:8761 · mgmt :7761</text>
+
+  <!-- gateway -->
+  <rect class="box-a" x="110" y="350" width="250" height="100" rx="10"/>
+  <text class="kick" x="235" y="373" text-anchor="middle">API GATEWAY</text>
+  <text class="name" x="235" y="397" text-anchor="middle">Gateway</text>
+  <text class="meta" x="235" y="416" text-anchor="middle">:8000 · mgmt :7000</text>
+  <text class="sub"  x="235" y="433" text-anchor="middle">Spring Cloud Gateway</text>
+
+  <!-- common api -->
+  <rect class="box-a" x="490" y="350" width="300" height="100" rx="10"/>
+  <text class="kick" x="640" y="373" text-anchor="middle">COMMON API</text>
+  <text class="name" x="640" y="397" text-anchor="middle">Common API</text>
+  <text class="meta" x="640" y="416" text-anchor="middle">:8010 /api · mgmt :7010</text>
+  <text class="sub"  x="640" y="433" text-anchor="middle">인증 · 기기 · 알림</text>
+
+  <!-- services -->
+  <rect class="box" x="110" y="615" width="180" height="70" rx="10"/>
+  <text class="name-s" x="200" y="646" text-anchor="middle">MONGS-CHARACTER</text>
+  <text class="sub"    x="200" y="665" text-anchor="middle">/api/character/**</text>
+
+  <rect class="box" x="310" y="615" width="150" height="70" rx="10"/>
+  <text class="name-s" x="385" y="646" text-anchor="middle">MONGS-USER</text>
+  <text class="sub"    x="385" y="665" text-anchor="middle">/api/user/**</text>
+
+  <!-- infra -->
+  <rect class="box" x="575" y="615" width="120" height="70" rx="10"/>
+  <text class="name-s" x="635" y="646" text-anchor="middle">Kafka</text>
+  <text class="sub"    x="635" y="665" text-anchor="middle">notification</text>
+
+  <rect class="box" x="712" y="615" width="120" height="70" rx="10"/>
+  <text class="name-s" x="772" y="646" text-anchor="middle">MySQL</text>
+  <text class="sub"    x="772" y="665" text-anchor="middle">account · device</text>
+
+  <rect class="box" x="849" y="615" width="120" height="70" rx="10"/>
+  <text class="name-s" x="909" y="646" text-anchor="middle">Redis</text>
+  <text class="sub"    x="909" y="665" text-anchor="middle">token</text>
+
+  <rect class="box" x="986" y="615" width="120" height="70" rx="10"/>
+  <text class="name-s" x="1046" y="646" text-anchor="middle">Firebase</text>
+  <text class="sub"    x="1046" y="665" text-anchor="middle">FCM Push</text>
+
+  <!-- ── legend ─────────────────────────────────────────── -->
+  <path class="lna" d="M 70 752 H 108" marker-end="url(#aa)"/>
+  <text class="lbl" x="120" y="756">HTTP 요청 · 데이터 흐름</text>
+  <path class="lnd" d="M 300 752 H 338" marker-end="url(#am)"/>
+  <text class="lbl" x="350" y="756">Eureka 등록 / 조회</text>
+</svg>
