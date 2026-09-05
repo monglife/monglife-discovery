@@ -104,12 +104,12 @@ configs/                               ← 설정 서브모듈 (private)
 
 > ⚠️ **이 저장소는 퍼블릭이다.** 비밀번호·키·토큰·접속 정보를 코드에도 문서에도 적지 않는다.
 
-이 저장소에는 어떤 설정 파일(`*.yml`)도 두지 않는다. `*/src/main/resources/*.{yml,json,xml}` 은
+이 저장소에는 어떤 설정 파일(`*.yml`)도 두지 않는다. `*/src/main/resources/*.{yml,json,xml,sql}` 은
 **빌드 산출물**이고, 루트 `build.gradle` 의 `copyPrivate` 태스크가 서브모듈에서 복사해 만든다
 (`.gitignore` 대상).
 
 ```
-configs/properties/<parentModule>/<currentModule>/*.{yml,json,xml}
+configs/properties/<parentModule>/<currentModule>/*.{yml,json,xml,sql}
         │   copyPrivate: src/main/resources 의 기존 파일을 지우고 → 복사
         ▼
 <currentModule>/src/main/resources/

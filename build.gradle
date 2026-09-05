@@ -44,6 +44,7 @@ subprojects {
                     include("*.yml")
                     include("*.json")
                     include("*.xml")
+                    include("*.sql")
                 }
 
                 project.copy {
@@ -51,6 +52,7 @@ subprojects {
                         include("*.yml")
                         include("*.json")
                         include("*.xml")
+                        include("*.sql")
                     }
                     into("src/main/resources")
                 }

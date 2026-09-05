@@ -33,11 +33,11 @@ configs/                               ← 설정 서브모듈 (MongLife/monglif
 > 값이 필요하면 `configs`(프라이빗) 안의 위치를 가리키기만 한다. 한 번 커밋하면 파일에서
 > 지워도 히스토리에 남으므로, 노출된 값은 **교체**하는 수밖에 없다.
 
-`*/src/main/resources/*.yml`, `*.json`, `*.xml` 은 **빌드 산출물**이다. 루트 `build.gradle` 의
+`*/src/main/resources/*.yml`, `*.json`, `*.xml`, `*.sql` 은 **빌드 산출물**이다. 루트 `build.gradle` 의
 `copyPrivate` 태스크가 만들어내고 `.gitignore` 가 걸려 있다. 직접 편집해도 다음 빌드에 사라진다.
 
 ```
-configs/properties/<parentModule>/<currentModule>/*.{yml,json,xml}
+configs/properties/<parentModule>/<currentModule>/*.{yml,json,xml,sql}
         │   copyPrivate: src/main/resources 의 기존 파일을 지우고 → 복사
         ▼
 <currentModule>/src/main/resources/
@@ -74,6 +74,13 @@ git add configs && git commit -m "chore: configs 서브모듈 갱신"
 - `domain-account.yml` 같은 이름은 스프링 기본 규칙으로 로드되지 않는다. `main()` 의
   `spring.config.name`(`application,client,domain`) 과 `application.yml` 의 `profiles.include` 조합으로
   결정된다. **새 설정 파일은 파일만 만들어서는 로드되지 않는다.**
+- **`*.sql` 은 스프링이 이름으로 찾아 주지 않는다.** 복사만 될 뿐이라 읽는 쪽을 코드에 만들어야 한다.
+  지금은 `app_version.sql` 하나이고 device 모듈의 `SqlInitConfig` 가 `classpath:` 로 읽어
+  **매 기동마다** 돌린다. 스크립트가 `INSERT IGNORE` 라 이미 있는 행은 건너뛰고 새로 추가된
+  것만 들어가므로 프로파일로 가르지 않는다. `INSERT IGNORE` 때문에 local 의 H2 URL 에서
+  `MODE=MySQL` 을 빼면 안 된다.
+  (`spring.sql.init.*` 은 자동 구성된 단일 데이터소스에만, `hbm2ddl.import_files` 는 스키마
+  **생성** 시에만 — `update`/`none` 에선 안 돈다 — 걸려서 둘 다 못 쓴다)
 
 ---
 
