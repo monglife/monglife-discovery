@@ -136,43 +136,65 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
 
 ### STAGE / PRODUCT (`cd-stg` / `cd-prd`)
 
-빌드 → `~/service/discovery` 로 전송 → `docker compose up -d --build <서비스>` 다.
-스크립트(`run.sh`/`service.sh`)를 서버에 두지 않고 워크플로가 compose 를 직접 호출한다.
+빌드 → `~/service/discovery` 로 전송 → 서버의 **`./service.sh up`** 호출이다.
+워크플로가 compose 를 직접 부르지 않는다. 사전 검사(필수 키·로그 디렉터리·네트워크·jar 존재)와
+기동 확인이 전부 `service.sh` 안에 있어서, 서버에서 손으로 돌릴 때도 같은 검사를 받는다.
 
-서버는 **discovery 와 nginx 두 스택**으로 나뉘고, 배포는 discovery 만 교체한다.
-
-두 환경은 **프로파일과 SSH 시크릿만 다르고 구조가 같다.**
+**배포는 discovery 스택만 교체한다.** 같은 서버의 나머지 스택은 손대지 않는다.
 
 ```
-/home/monglife/service/          ← configs/docker/<프로파일> 트리를 그대로 넣고 setup.sh 한 번
-  discovery/                     ← 배포 대상
-    setup.sh
-    .env                         서버에서만 관리. 워크플로가 전송하지 않는다
-    docker-compose.yml       ┐
-    spring-boot-docker-file  ├ 워크플로가 매 배포마다 덮어쓴다
-    .dockerignore            ┘
-    monglife-discovery-app-{eureka,gateway,common-api}.jar
-  nginx/                         ← 독립 스택. 배포가 건드리지 않는다
-  logs/
+/home/monglife/                  ← configs/deploy/<환경>/ 트리가 그대로 펼쳐진다
+  global/
+    .env                         모든 스택이 공유. 서버에서만 관리
+    batch/ssl.sh                 인증서 발급·갱신
+    logs/<컨테이너명>/            모든 스택의 로그가 여기로 모인다
+  storage/                       MySQL / Redis / MQTT / Zookeeper / Kafka
+  elk/                           Elasticsearch / Logstash / Kibana. **stage 에만 있다**
+  monitor/                       Prometheus / Grafana. **stage 에만 있다**
+  service/
+    discovery/                   ← 배포 대상
+      .env                       서버에서만 관리. 워크플로가 전송하지 않는다
+      .compose                 ┐
+      service.sh               │
+      docker-compose.yml       ├ 워크플로가 매 배포마다 덮어쓴다
+      spring-boot-docker-file  │
+      .dockerignore            │
+      .version                 ┘ 빌드한 모듈 버전. 워크플로가 만든다
+      build/monglife-discovery-app-{eureka,gateway,common-api}.jar
+    nginx/                       리버스 프록시. **product 에만 있다**
+  tool/                          Portainer / mailserver. **stage 에만 있다**
 ```
 
+- **두 환경의 구조가 완전히 같지는 않다.** discovery / storage 는 같고, `nginx` 는 product 에만,
+  `elk` · `monitor` · `tool` 은 stage 에만 있다. `service/` 아래에 있는 것은 CD 대상인
+  `discovery` 와 인그레스인 `nginx` 뿐이고, 나머지 스택은 환경 루트에 바로 놓인다.
+- **인그레스는 product nginx 하나다.** stage 에는 nginx 가 없다. `stg.*` 도메인은 product 가
+  TLS 를 종단한 뒤 사설망으로 stage 호스트에 넘기고, `mail` 은 nginx 의 `stream` 블록이
+  L4 로 패스스루한다. 그래서 **stage discovery 가 호스트에 퍼블리시하는 포트가 실제 진입점**이며,
+  방화벽에서 product 에서만 닿도록 막아야 한다.
 - 시크릿은 GitHub Environment(`stage` / `product`)에 둔다. 이름은 양쪽 같다:
   `HOST` `PORT` `USERNAME` `SSH_KEY` `ACTION_TOKEN`. 두 워크플로는 이름·브랜치·`environment`·
-  `compose_dir` 만 다르고 나머지가 동일하므로, 한쪽을 고치면 다른 쪽도 같이 고친다.
-- 네트워크는 둘 다 external 이다. `service-net`(프록시 공유)은 없으면 만들고,
+  `deploy_env` 만 다르고 나머지가 동일하므로, 한쪽을 고치면 다른 쪽도 같이 고친다.
+- 네트워크는 전부 external 이다. `service-net`(프록시 공유)은 없으면 만들고,
   **`storage-net`(MySQL/Redis/Kafka)은 만들지 않고 없으면 중단한다.** 빈 네트워크가 생기면
   컨테이너 이름 DNS 가 조용히 실패하기 때문이다.
 - **`.env` 에 키가 없으면 compose 는 빈 문자열로 치환하고 경고만 낸다.** 포트라면 `":8761"` 이 되어
-  기동이 깨진다. 워크플로가 기동 전에 필수 키를 검사하니, compose 변수를 늘리면 그 목록도 함께 늘린다.
+  기동이 깨진다. `service.sh` 가 `.compose` 의 `STACK_REQUIRED_KEYS` 로 기동 전에 끊으니,
+  compose 변수를 늘리면 그 목록도 함께 늘린다.
 - `.env` 의 `*_HOST` 는 `storage-net` 위 **컨테이너 이름**, `*_PORT` 는 **컨테이너 포트**다.
 - **컨테이너에 넣는 환경변수 이름은 `UPPER_SNAKE` 로 쓴다.** `Dockerfile` 의 ENTRYPOINT 가
   `sh -c` 라 `JAVA_OPTS` 를 단어 분리해 넘기는데, 그 셸(`dash`)이 **점이 들어간 이름
   (`db.host`)을 유효한 식별자가 아니라며 버린다.** 그러면 yml 의 `${db.host}` 가 치환되지 않아
   `Failed to parse the host:port pair '${db.host}:${db.port}'` 로 기동에 실패한다.
   `DB_HOST` 로 주면 스프링의 relaxed binding 이 `${db.host}` 를 찾아준다.
-  `.env` 는 서버의 `setup.sh` 가 만든다(내용이 스크립트 안에 인라인으로 있다).
+- **`.env` 는 서버에서 손으로 만든다.** 워크플로도, 어떤 스크립트도 만들어 주지 않는다.
+  `~/global/.env` 도 마찬가지다. 저장소의 `deploy/*/**/.env` 는 **참고용 사본**이라 서버와
+  갈라질 수 있다 — 값을 바꿨으면 서버에도 손으로 반영한다.
+- **`docker compose up -d` 는 컨테이너를 만들기만 하면 0 을 돌려준다.** 앱이 부팅 도중 죽어도
+  `restart` 정책이 되살려서, 확인이 없으면 기동 실패가 CD 초록불로 끝난다. `service.sh` 가
+  `.compose` 의 `STACK_HEALTH` 로 실제 기동을 확인하고, 실패하면 컨테이너 로그를 찍고 비정상 종료한다.
 
-서버 트리의 상세와 조작법은 `configs/docker/<프로파일>/README.md` 에 있다.
+서버 트리의 상세와 조작법(`service.sh` / `.compose` 의 `STACK_*` 규칙 포함)은 `configs/CLAUDE.md` 에 있다.
 
 배포 순서는 **configs 푸시 → 서브모듈 포인터 커밋 → 코드 푸시** 다. 롤백할 때는 반대로 **코드부터**
 되돌린다. 코드를 되돌리면 configs 에 남은 키는 잉여값일 뿐이지만, configs 만 되돌리고 코드를 남기면
