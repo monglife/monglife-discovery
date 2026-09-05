@@ -147,7 +147,8 @@ H2 드라이버는 두 도메인 모듈에 `runtimeOnly` 로 선언돼 있다(`m
   global/
     .env                         모든 스택이 공유. 서버에서만 관리
     batch/ssl.sh                 인증서 발급·갱신 (product 에만)
-    batch/status_all.sh          모든 스택의 컨테이너 상태를 표 하나로
+    batch/status_all.sh          모든 스택의 컨테이너 상태를 표 하나로 (-f 로 실시간)
+    batch/net_reset.sh           네트워크 선언·실제 대역 대조, 재생성·잔재 정리
     install/exporter/            node·mysqld·redis exporter 를 호스트 systemd 서비스로
     logs/<컨테이너명>/            모든 스택의 로그가 여기로 모인다
   storage/                       MySQL / Redis / MQTT / Zookeeper / Kafka
