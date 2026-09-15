@@ -2,6 +2,12 @@ import { tokenStorage } from '@/shared/auth/tokenStorage';
 import type { Page, PageResponseDto, ResponseDto } from './types';
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api').replace(/\/$/, '');
+/**
+ * mongs(게임) 관리 API 는 게이트웨이를 거친다. 토큰 검증·패스포트 발급이 거기에 있고,
+ * mongs 는 패스포트의 role 로 /admin/** 을 막는다.
+ * 운영은 인그레스가 같은 출처로 묶어 주어 common-api 와 값이 같다(`/api`).
+ */
+const GATEWAY_BASE_URL = (import.meta.env.VITE_GATEWAY_BASE_URL ?? BASE_URL).replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(
@@ -22,8 +28,8 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function buildUrl(path: string, query?: Query) {
-  const url = new URL(BASE_URL + path, window.location.origin);
+function buildUrl(path: string, query?: Query, baseUrl: string = BASE_URL) {
+  const url = new URL(baseUrl + path, window.location.origin);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, String(v));
@@ -108,13 +114,13 @@ async function fetchWithReissue(url: string, init: RequestInit & { headers: Reco
   return retried;
 }
 
-async function request<T>(method: string, path: string, opts: RequestOptions = {}): Promise<T> {
+async function request<T>(method: string, path: string, opts: RequestOptions = {}, baseUrl: string = BASE_URL): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   const accessToken = tokenStorage.getAccessToken();
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetchWithReissue(buildUrl(path, opts.query), {
+  const res = await fetchWithReissue(buildUrl(path, opts.query, baseUrl), {
     method,
     headers,
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
@@ -130,12 +136,12 @@ async function request<T>(method: string, path: string, opts: RequestOptions = {
 }
 
 /** PageResponseDto 를 Page<T> 로 변환. total 은 X-Total-Count 헤더가 있으면 그 값을 쓴다. */
-async function requestPage<T>(path: string, query?: Query): Promise<Page<T>> {
+async function requestPage<T>(path: string, query?: Query, baseUrl: string = BASE_URL): Promise<Page<T>> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   const accessToken = tokenStorage.getAccessToken();
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
-  const res = await fetchWithReissue(buildUrl(path, query), { headers });
+  const res = await fetchWithReissue(buildUrl(path, query, baseUrl), { headers });
   const json = await parseJson<PageResponseDto<T[]>>(res);
   if (!res.ok || !json) throw new ApiError(res.status, json?.code ?? String(res.status), json?.message ?? `HTTP ${res.status} ${res.statusText}`);
   // 백엔드는 X-Total-Count 헤더에 정확한 건수를 준다. 없으면 totalPage 로 근사한다.
@@ -144,11 +150,19 @@ async function requestPage<T>(path: string, query?: Query): Promise<Page<T>> {
   return { items: json.result, page: json.page, size: json.size, total };
 }
 
-export const api = {
-  get: <T>(path: string, query?: Query) => request<T>('GET', path, { query }),
-  getPage: <T>(path: string, query?: Query) => requestPage<T>(path, query),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body }),
-  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, { body }),
-  patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, { body }),
-  delete: <T>(path: string, body?: unknown) => request<T>('DELETE', path, { body }),
-};
+function createApi(baseUrl: string) {
+  return {
+    get: <T>(path: string, query?: Query) => request<T>('GET', path, { query }, baseUrl),
+    getPage: <T>(path: string, query?: Query) => requestPage<T>(path, query, baseUrl),
+    post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body }, baseUrl),
+    put: <T>(path: string, body?: unknown) => request<T>('PUT', path, { body }, baseUrl),
+    patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, { body }, baseUrl),
+    delete: <T>(path: string, body?: unknown) => request<T>('DELETE', path, { body }, baseUrl),
+  };
+}
+
+/** common-api(/api/admin/**) */
+export const api = createApi(BASE_URL);
+
+/** 게이트웨이 경유 mongs 관리 API (/api/character/admin/**, /api/user/admin/**) */
+export const mongsApi = createApi(GATEWAY_BASE_URL);
