@@ -23,19 +23,21 @@ export function StarPointForm({ current, loading, onSubmit }: Props) {
 
   return (
     <form
-      className="space-y-3"
+      className="flex h-full flex-col"
       onSubmit={form.handleSubmit((values) => {
         onSubmit({ delta: values.delta, reason: values.reason || undefined });
         form.reset({ delta: 0, reason: '' });
       })}
     >
-      <Field label="가감할 스타 포인트" error={form.formState.errors.delta?.message} hint="음수면 차감. 0 아래로는 내려가지 않는다.">
-        <Input type="number" {...form.register('delta')} />
-      </Field>
-      <Field label="사유" error={form.formState.errors.reason?.message} hint="로그에 남는다.">
-        <Input {...form.register('reason')} placeholder="예: CS 보상 지급" />
-      </Field>
-      <div className="flex items-center justify-between">
+      <div className="flex-1 space-y-3">
+        <Field label="가감할 스타 포인트" error={form.formState.errors.delta?.message} hint="음수면 차감. 0 아래로는 내려가지 않는다.">
+          <Input type="number" {...form.register('delta')} />
+        </Field>
+        <Field label="사유" error={form.formState.errors.reason?.message} hint="로그에 남는다.">
+          <Input {...form.register('reason')} placeholder="예: CS 보상 지급" />
+        </Field>
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t pt-4">
         <span className="text-xs text-muted-foreground">
           {formatNumber(current)} → <span className={after < 0 ? 'text-danger' : 'text-foreground'}>{formatNumber(after)}</span>
         </span>

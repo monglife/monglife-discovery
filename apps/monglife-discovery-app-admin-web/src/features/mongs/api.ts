@@ -98,3 +98,46 @@ export const masterApi = {
   mapTypes: () => mongsApi.get<MapType[]>(`${USER}/master/map-types`),
   exchangeProducts: () => mongsApi.get<ExchangeStarPointProduct[]>(`${USER}/master/exchange-star-point-products`),
 };
+
+/** 마스터 데이터 등록. 종류(kind)에 따라 쓰는 필드가 다르다 */
+export type CharacterMasterKind = 'MONG_TYPE' | 'FOOD' | 'SNACK' | 'TRAINING_TYPE' | 'RANDOM_DRAW';
+export type UserMasterKind = 'MAP_TYPE' | 'EXCHANGE_STAR_POINT_PRODUCT';
+export type MasterKind = CharacterMasterKind | UserMasterKind;
+
+export interface MasterCreateBody {
+  kind: MasterKind;
+  code: string;
+  name?: string;
+  /* 몽 타입 */
+  level?: number;
+  evolutionScore?: number;
+  maxStatus?: number;
+  groupType?: string;
+  /* 음식·간식 */
+  price?: number;
+  weight?: number;
+  strength?: number;
+  satiety?: number;
+  healthy?: number;
+  fatigue?: number;
+  delaySeconds?: number;
+  /* 훈련 */
+  payPoint?: number;
+  score?: number;
+  timeout?: number;
+  exp?: number;
+  /* 랜덤 뽑기 */
+  inventoryTypeCode?: 'FOOD' | 'SNACK' | 'MAP';
+  /* 맵 */
+  words?: string;
+  /* 환전 상품 */
+  starPoint?: number;
+}
+
+const USER_KINDS: MasterKind[] = ['MAP_TYPE', 'EXCHANGE_STAR_POINT_PRODUCT'];
+
+export const masterCreateApi = {
+  /** 종류에 따라 character / user 중 맞는 서비스로 보낸다 */
+  create: (body: MasterCreateBody) =>
+    mongsApi.post<{ kind: string; code: string }>(USER_KINDS.includes(body.kind) ? `${USER}/master` : `${CHARACTER}/master`, body),
+};

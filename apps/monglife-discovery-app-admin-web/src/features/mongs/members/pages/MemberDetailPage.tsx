@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useCollections, useMember, useMemberMutations, useMongList, useOrders, useStep } from '../../queries';
 import { StarPointForm } from '../components/StarPointForm';
 import { SlotCountForm } from '../components/SlotCountForm';
 import { CollectionPanel } from '../components/CollectionPanel';
+import { CollectionGrantDialog } from '../components/CollectionGrantDialog';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, PageHeader } from '@/shared/ui';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { StatCard } from '@/shared/components/StatCard';
@@ -18,6 +20,7 @@ export function MemberDetailPage() {
   const { data: mongs } = useMongList({ page: 0, size: 20, accountId });
   const { data: orders } = useOrders({ page: 0, size: 10, accountId });
   const mutations = useMemberMutations(accountId);
+  const [granting, setGranting] = useState<'MONG' | 'MAP' | null>(null);
 
   if (!isLoading && !member) return <EmptyState message="멤버를 찾을 수 없습니다." />;
 
@@ -95,16 +98,30 @@ export function MemberDetailPage() {
         <CollectionPanel
           title="컬렉션 몽"
           items={(collections?.mongs ?? []).map((c) => ({ code: c.mongCode, name: c.mongName, owned: c.isIncluded }))}
-          loading={mutations.grantMong.isPending}
-          onGrant={(code) => mutations.grantMong.mutate(code)}
+          onGrantClick={() => setGranting('MONG')}
         />
         <CollectionPanel
           title="컬렉션 맵"
           items={(collections?.maps ?? []).map((c) => ({ code: c.mapCode, name: c.mapName, owned: c.isIncluded }))}
-          loading={mutations.grantMap.isPending}
-          onGrant={(code) => mutations.grantMap.mutate(code)}
+          onGrantClick={() => setGranting('MAP')}
         />
       </div>
+
+      <CollectionGrantDialog
+        open={granting !== null}
+        kind={granting ?? 'MONG'}
+        ownedCodes={
+          granting === 'MAP'
+            ? (collections?.maps ?? []).filter((c) => c.isIncluded).map((c) => c.mapCode)
+            : (collections?.mongs ?? []).filter((c) => c.isIncluded).map((c) => c.mongCode)
+        }
+        loading={mutations.grantMong.isPending || mutations.grantMap.isPending}
+        onClose={() => setGranting(null)}
+        onSubmit={(code) => {
+          const mutation = granting === 'MAP' ? mutations.grantMap : mutations.grantMong;
+          mutation.mutate(code, { onSuccess: () => setGranting(null) });
+        }}
+      />
     </>
   );
 }

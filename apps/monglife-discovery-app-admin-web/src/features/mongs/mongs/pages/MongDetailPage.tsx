@@ -9,6 +9,7 @@ import { MongStateForm } from '../components/MongStateForm';
 import { MongSleepForm } from '../components/MongSleepForm';
 import { InventoryGrantDialog } from '../components/InventoryGrantDialog';
 import { DataTable, type Column } from '@/shared/components/DataTable';
+import { useClientPage } from '@/shared/components/ClientPagination';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { StatCard } from '@/shared/components/StatCard';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, PageHeader, Pagination } from '@/shared/ui';
@@ -26,6 +27,8 @@ export function MongDetailPage() {
   const { data: inventories } = useInventories(mongId, { page: invPage, size: 10 });
   const { data: histories } = useEvolutionHistories(mong?.accountId ?? 0);
   const mutations = useMongMutations(mongId);
+  // 스케줄은 목록이 통째로 온다. 몽 하나에 최대 대여섯 개라 클라이언트에서 끊는다.
+  const taskPage = useClientPage(tasks, 3);
   const [removing, setRemoving] = useState(false);
   const [granting, setGranting] = useState(false);
   const [pendingState, setPendingState] = useState<{ stateCode: MongStateCode; reason?: string } | null>(null);
@@ -109,7 +112,10 @@ export function MongDetailPage() {
             <CardTitle>스케줄</CardTitle>
             <span className="text-xs text-muted-foreground">mongs_task</span>
           </CardHeader>
-          <DataTable columns={taskColumns} rows={tasks ?? []} rowKey={(t) => t.taskId} emptyMessage="등록된 스케줄이 없습니다." />
+          <DataTable columns={taskColumns} rows={taskPage.items} rowKey={(t) => t.taskId} emptyMessage="등록된 스케줄이 없습니다." />
+          {taskPage.total > 0 && (
+            <Pagination page={taskPage.page} size={taskPage.size} total={taskPage.total} onPageChange={taskPage.setPage} />
+          )}
         </Card>
 
         {/* 2행 — 지수 수정 | 상태·수면 변경 */}

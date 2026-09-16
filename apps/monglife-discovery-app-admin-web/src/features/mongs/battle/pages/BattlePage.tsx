@@ -4,11 +4,12 @@ import { useBattleMutations, useBattleStats, useMatches, useQueuePlayers, useRef
 import type { MatchSummary, QueuePlayer } from '../../types';
 import { MatchDetailDialog } from '../components/MatchDetailDialog';
 import { DataTable, type Column } from '@/shared/components/DataTable';
+import { useClientPage } from '@/shared/components/ClientPagination';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { FilterSelect } from '@/shared/components/FilterSelect';
 import { StatCard } from '@/shared/components/StatCard';
 import { Badge, Button, Card, CardHeader, CardTitle, PageHeader, Pagination } from '@/shared/ui';
-import { formatDateTime, formatNumber, formatTime } from '@/shared/lib/format';
+import { formatDateTime, formatDateTimeSec, formatNumber } from '@/shared/lib/format';
 
 const SIZE = 10;
 const STATE_CODES = ['ENTERING', 'PROCESS', 'END'];
@@ -26,6 +27,8 @@ export function BattlePage() {
   const { data: matches, isLoading } = useMatches(params);
   const { data: stats } = useBattleStats();
   const { removeFromQueue, terminate } = useBattleMutations();
+  // 대기열은 목록이 통째로 온다. 화면에서 끊는다.
+  const queuePage = useClientPage(queue, SIZE);
 
   const queueColumns: Column<QueuePlayer>[] = [
     { key: 'mong', header: '몽 ID', cell: (q) => q.mongId },
@@ -72,7 +75,7 @@ export function BattlePage() {
         description="대기열은 30초마다 스스로 다시 읽는다. 지금 바로 보려면 새로고침."
         actions={
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{formatTime(dataUpdatedAt)} 기준</span>
+            <span className="text-xs text-muted-foreground">{formatDateTimeSec(dataUpdatedAt)} 기준</span>
             <Button variant="secondary" loading={isFetching} onClick={refresh}>
               <RefreshCw className="size-4" /> 새로고침
             </Button>
@@ -92,15 +95,23 @@ export function BattlePage() {
           <CardTitle>매치 대기열</CardTitle>
           <span className="text-xs text-muted-foreground">Redis</span>
         </CardHeader>
-        <DataTable columns={queueColumns} rows={queue ?? []} rowKey={(q) => `${q.mongId}:${q.deviceId}`} loading={queueLoading} emptyMessage="대기 중인 플레이어가 없습니다." />
+        <DataTable
+          columns={queueColumns}
+          rows={queuePage.items}
+          rowKey={(q) => `${q.mongId}:${q.deviceId}`}
+          loading={queueLoading}
+          emptyMessage="대기 중인 플레이어가 없습니다."
+        />
+        {queuePage.total > 0 && (
+          <Pagination page={queuePage.page} size={queuePage.size} total={queuePage.total} onPageChange={queuePage.setPage} />
+        )}
       </Card>
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <FilterSelect label="상태" value={stateCode} onChange={(v) => { setStateCode(v); setPage(0); }} options={STATE_CODES} />
-      </div>
-
       <Card>
-        <CardHeader><CardTitle>매치</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>매치</CardTitle>
+          <FilterSelect label="상태" value={stateCode} onChange={(v) => { setStateCode(v); setPage(0); }} options={STATE_CODES} />
+        </CardHeader>
         <DataTable
           columns={matchColumns}
           rows={matches?.items ?? []}

@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { useMaster } from '../../queries';
+import { Plus } from 'lucide-react';
+import { useCreateMaster, useMaster } from '../../queries';
+import { MasterCreateDialog } from '../components/MasterCreateDialog';
 import type { ExchangeStarPointProduct, FeedItem, MapType, MongType, RandomDraw, TrainingType } from '../../types';
 import { DataTable, type Column } from '@/shared/components/DataTable';
-import { Card, PageHeader } from '@/shared/ui';
+import { useClientPage } from '@/shared/components/ClientPagination';
+import { Button, Card, PageHeader, Pagination } from '@/shared/ui';
 import { cn } from '@/shared/lib/cn';
 import { formatNumber } from '@/shared/lib/format';
 
@@ -70,24 +73,29 @@ const exchangeColumns: Column<ExchangeStarPointProduct>[] = [
 
 export function MasterDataPage() {
   const [tab, setTab] = useState<TabKey>('mongTypes');
+  const [creating, setCreating] = useState(false);
   const { data, isLoading } = useMaster(tab);
+  const create = useCreateMaster();
+  // 마스터 조회는 페이징이 없다. 통째로 받아 화면에서 끊는다.
+  const page = useClientPage(data as unknown[] | undefined, 10);
 
-  // 탭마다 행 타입이 달라 컬럼·키를 여기서 고른다
+  // 탭마다 행 타입이 달라 컬럼·키를 여기서 고른다. 행은 현재 페이지 몫만 넘긴다.
   const table = () => {
+    const rows = page.items;
     switch (tab) {
       case 'mongTypes':
-        return <DataTable columns={mongTypeColumns} rows={(data ?? []) as MongType[]} rowKey={(r) => r.mongCode} loading={isLoading} />;
+        return <DataTable columns={mongTypeColumns} rows={rows as MongType[]} rowKey={(r) => r.mongCode} loading={isLoading} />;
       case 'foods':
       case 'snacks':
-        return <DataTable columns={feedColumns} rows={(data ?? []) as FeedItem[]} rowKey={(r) => r.code} loading={isLoading} />;
+        return <DataTable columns={feedColumns} rows={rows as FeedItem[]} rowKey={(r) => r.code} loading={isLoading} />;
       case 'trainingTypes':
-        return <DataTable columns={trainingColumns} rows={(data ?? []) as TrainingType[]} rowKey={(r) => r.trainingCode} loading={isLoading} />;
+        return <DataTable columns={trainingColumns} rows={rows as TrainingType[]} rowKey={(r) => r.trainingCode} loading={isLoading} />;
       case 'randomDraws':
-        return <DataTable columns={randomDrawColumns} rows={(data ?? []) as RandomDraw[]} rowKey={(r) => r.randomDrawId} loading={isLoading} />;
+        return <DataTable columns={randomDrawColumns} rows={rows as RandomDraw[]} rowKey={(r) => r.randomDrawId} loading={isLoading} />;
       case 'mapTypes':
-        return <DataTable columns={mapColumns} rows={(data ?? []) as MapType[]} rowKey={(r) => r.mapCode} loading={isLoading} />;
+        return <DataTable columns={mapColumns} rows={rows as MapType[]} rowKey={(r) => r.mapCode} loading={isLoading} />;
       case 'exchangeProducts':
-        return <DataTable columns={exchangeColumns} rows={(data ?? []) as ExchangeStarPointProduct[]} rowKey={(r) => r.productId} loading={isLoading} />;
+        return <DataTable columns={exchangeColumns} rows={rows as ExchangeStarPointProduct[]} rowKey={(r) => r.productId} loading={isLoading} />;
     }
   };
 
@@ -95,7 +103,12 @@ export function MasterDataPage() {
     <>
       <PageHeader
         title="마스터 데이터"
-        description="읽기 전용. 값 수정은 캐시·시드 SQL 과 엇갈리므로 SQL 배포로 한다."
+        description="등록한 코드는 공통 코드로도 함께 들어간다. 값 수정은 아직 SQL 배포로 한다."
+        actions={
+          <Button className="ml-auto" onClick={() => setCreating(true)}>
+            <Plus className="size-4" /> 등록
+          </Button>
+        }
       />
 
       <div className="mb-3 flex flex-wrap gap-1.5">
@@ -103,7 +116,7 @@ export function MasterDataPage() {
           <button
             key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => { setTab(t.key); page.setPage(0); }}
             className={cn(
               'rounded-md px-3 py-1.5 text-sm',
               tab === t.key ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground hover:bg-surface-muted',
@@ -114,7 +127,18 @@ export function MasterDataPage() {
         ))}
       </div>
 
-      <Card>{table()}</Card>
+      <Card>
+        {table()}
+        {page.total > 0 && <Pagination page={page.page} size={page.size} total={page.total} onPageChange={page.setPage} />}
+      </Card>
+
+      <MasterCreateDialog
+        open={creating}
+        loading={create.isPending}
+        error={create.error instanceof Error ? create.error.message : undefined}
+        onClose={() => { setCreating(false); create.reset(); }}
+        onSubmit={(body) => create.mutate(body, { onSuccess: () => setCreating(false) })}
+      />
     </>
   );
 }

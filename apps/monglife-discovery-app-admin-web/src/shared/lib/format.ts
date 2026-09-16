@@ -42,3 +42,10 @@ export function formatTime(value?: string | number | null) {
   if (!value) return '-';
   return new Date(value).toLocaleTimeString('en-GB', { hour12: false });
 }
+
+/** "2026. 09. 16. 22:31:03" — 마지막 갱신 시각처럼 날짜까지 필요한 표기 */
+export function formatDateTimeSec(value?: string | number | null) {
+  if (!value) return '-';
+  const d = new Date(value);
+  return `${formatDate(d.getTime())} ${d.toLocaleTimeString('en-GB', { hour12: false })}`;
+}

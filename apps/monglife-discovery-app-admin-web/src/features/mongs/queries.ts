@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  battleApi, masterApi, membersApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
+  battleApi, masterApi, masterCreateApi, membersApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
 } from './api';
 import type { MongSleepPatch, MongStateCode, MongStatusPatch } from './types';
 
@@ -180,3 +180,12 @@ export const useMaster = <K extends keyof typeof masterApi>(kind: K) =>
     queryKey: mongsKeys.master(kind),
     queryFn: () => masterApi[kind]() as Promise<Awaited<ReturnType<(typeof masterApi)[K]>>>,
   });
+
+/** 마스터 데이터 등록 */
+export function useCreateMaster() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: masterCreateApi.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: mongsKeys.all }),
+  });
+}

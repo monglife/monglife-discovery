@@ -10,7 +10,7 @@ import { Badge, Button, Card, PageHeader, Pagination, Switch } from '@/shared/ui
 import { formatDateTime } from '@/shared/lib/format';
 import { toSortParam, type SortState } from '@/shared/api/types';
 
-const SIZE = 15;
+const SIZE = 10;
 
 export function NoticeListPage() {
   const [page, setPage] = useState(0);
@@ -53,7 +53,7 @@ export function NoticeListPage() {
             label="노출"
             onCheckedChange={(visible) => hide.mutate({ noticeId: n.noticeId, isHided: !visible })}
           />
-          <Button size="sm" variant="ghost" onClick={() => setRemoving(n)}>
+          <Button size="sm" variant="ghost" className="text-danger hover:bg-danger-soft" onClick={() => setRemoving(n)}>
             삭제
           </Button>
         </span>
