@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useBattleMutations, useBattleStats, useMatches, useQueuePlayers } from '../../queries';
+import { RefreshCw } from 'lucide-react';
+import { useBattleMutations, useBattleStats, useMatches, useQueuePlayers, useRefreshBattle } from '../../queries';
 import type { MatchSummary, QueuePlayer } from '../../types';
 import { MatchDetailDialog } from '../components/MatchDetailDialog';
 import { DataTable, type Column } from '@/shared/components/DataTable';
@@ -7,9 +8,9 @@ import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { FilterSelect } from '@/shared/components/FilterSelect';
 import { StatCard } from '@/shared/components/StatCard';
 import { Badge, Button, Card, CardHeader, CardTitle, PageHeader, Pagination } from '@/shared/ui';
-import { formatDateTime, formatNumber } from '@/shared/lib/format';
+import { formatDateTime, formatNumber, formatTime } from '@/shared/lib/format';
 
-const SIZE = 15;
+const SIZE = 10;
 const STATE_CODES = ['ENTERING', 'PROCESS', 'END'];
 
 export function BattlePage() {
@@ -19,7 +20,8 @@ export function BattlePage() {
   const [dequeue, setDequeue] = useState<QueuePlayer | null>(null);
   const [terminating, setTerminating] = useState<MatchSummary | null>(null);
 
-  const { data: queue, isLoading: queueLoading } = useQueuePlayers();
+  const { data: queue, isLoading: queueLoading, dataUpdatedAt, isFetching } = useQueuePlayers();
+  const refresh = useRefreshBattle();
   const params = useMemo(() => ({ page, size: SIZE, stateCode: stateCode || undefined }), [page, stateCode]);
   const { data: matches, isLoading } = useMatches(params);
   const { data: stats } = useBattleStats();
@@ -65,7 +67,18 @@ export function BattlePage() {
 
   return (
     <>
-      <PageHeader title="배틀" description="대기열은 30초마다 다시 읽는다." />
+      <PageHeader
+        title="배틀"
+        description="대기열은 30초마다 스스로 다시 읽는다. 지금 바로 보려면 새로고침."
+        actions={
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{formatTime(dataUpdatedAt)} 기준</span>
+            <Button variant="secondary" loading={isFetching} onClick={refresh}>
+              <RefreshCw className="size-4" /> 새로고침
+            </Button>
+          </div>
+        }
+      />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="대기열" value={formatNumber(stats?.queueSize)} />

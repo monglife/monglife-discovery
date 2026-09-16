@@ -123,6 +123,11 @@ export interface Mong {
   updatedAt: string;
 }
 
+export interface MongSleepPatch {
+  isSleep: boolean;
+  reason?: string;
+}
+
 /** null 인 항목은 서버가 건드리지 않는다 */
 export interface MongStatusPatch {
   weight?: number | null;

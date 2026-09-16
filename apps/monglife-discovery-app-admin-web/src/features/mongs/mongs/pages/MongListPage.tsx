@@ -10,7 +10,7 @@ import { Card, PageHeader, Pagination } from '@/shared/ui';
 import { formatDateTime, formatNumber } from '@/shared/lib/format';
 import { toSortParam, type SortState } from '@/shared/api/types';
 
-const SIZE = 15;
+const SIZE = 10;
 const STATE_CODES: MongStateCode[] = ['NORMAL', 'EVOLUTION_READY', 'GRADUATE_READY', 'GRADUATE', 'DEAD'];
 const STATUS_CODES: MongStatusCode[] = ['NORMAL', 'HUNGRY', 'SOMNOLENCE', 'SICK'];
 

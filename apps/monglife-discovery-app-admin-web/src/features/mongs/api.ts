@@ -3,7 +3,7 @@ import type { Page, PageParams } from '@/shared/api/types';
 import type {
   BattleStats, CollectionMap, CollectionMong, EvolutionHistory, ExchangeStarPointProduct, FeedItem,
   Inventory, MapType, MatchDetail, MatchSummary, Member, MemberStats, Mong, MongStateCode, MongStats,
-  MongStatusCode, MongStatusPatch, MongType, Notice, Order, OrderDetail, QueuePlayer, RandomDraw,
+  MongSleepPatch, MongStatusCode, MongStatusPatch, MongType, Notice, Order, OrderDetail, QueuePlayer, RandomDraw,
   Step, Task, TrainingType,
 } from './types';
 
@@ -38,10 +38,9 @@ export const membersApi = {
   grantCollectionMong: (accountId: number, code: string) => mongsApi.post<CollectionMong[]>(`${USER}/members/${accountId}/collections/mongs`, { code }),
 };
 
-/** 걸음 수 환전 상한 (user) */
+/** 걸음 수 환전 상한 (user). 조회만 쓴다 — 초기화는 화면에서 뺐다 */
 export const stepsApi = {
   get: (accountId: number) => mongsApi.get<Step>(`${USER}/steps/${accountId}`),
-  reset: (accountId: number) => mongsApi.delete<Step>(`${USER}/steps/${accountId}`),
 };
 
 /** 주문 (user) */
@@ -60,6 +59,7 @@ export const mongDetailApi = {
   updateStatus: (mongId: number, body: MongStatusPatch) => mongsApi.patch<Mong>(`${CHARACTER}/mongs/${mongId}/status`, body),
   updateState: (mongId: number, body: { stateCode: MongStateCode; reason?: string }) =>
     mongsApi.patch<Mong>(`${CHARACTER}/mongs/${mongId}/state`, body),
+  updateSleep: (mongId: number, body: MongSleepPatch) => mongsApi.patch<Mong>(`${CHARACTER}/mongs/${mongId}/sleep`, body),
   remove: (mongId: number) => mongsApi.delete<Mong>(`${CHARACTER}/mongs/${mongId}`),
   tasks: (mongId: number) => mongsApi.get<Task[]>(`${CHARACTER}/mongs/${mongId}/tasks`),
   pauseTask: (taskId: number) => mongsApi.post<Task>(`${CHARACTER}/mongs/tasks/${taskId}/pause`),

@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useEvolutionHistories, useInventories, useMong, useMongMutations, useTasks } from '../../queries';
 import type { EvolutionHistory, Inventory, MongStateCode, Task } from '../../types';
 import { MongStateBadge, MongStatusBadge } from '../components/MongBadges';
 import { MongStatusForm } from '../components/MongStatusForm';
 import { MongStateForm } from '../components/MongStateForm';
-import { InventoryGrantForm } from '../components/InventoryGrantForm';
+import { MongSleepForm } from '../components/MongSleepForm';
+import { InventoryGrantDialog } from '../components/InventoryGrantDialog';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { StatCard } from '@/shared/components/StatCard';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, PageHeader, Pagination } from '@/shared/ui';
 import { formatDateTime, formatDuration, formatNumber } from '@/shared/lib/format';
+
+/** 수면·기상을 서버가 받아 주지 않는 상태 */
+const SLEEP_BLOCKED: MongStateCode[] = ['DEAD', 'GRADUATE', 'GRADUATE_READY'];
 
 export function MongDetailPage() {
   const mongId = Number(useParams().mongId);
@@ -23,6 +27,7 @@ export function MongDetailPage() {
   const { data: histories } = useEvolutionHistories(mong?.accountId ?? 0);
   const mutations = useMongMutations(mongId);
   const [removing, setRemoving] = useState(false);
+  const [granting, setGranting] = useState(false);
   const [pendingState, setPendingState] = useState<{ stateCode: MongStateCode; reason?: string } | null>(null);
 
   if (!isLoading && !mong) return <EmptyState message="몽을 찾을 수 없습니다." />;
@@ -97,36 +102,8 @@ export function MongDetailPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>지수 수정</CardTitle></CardHeader>
-          <CardBody>
-            {mong && (
-              <MongStatusForm
-                mong={mong}
-                loading={mutations.updateStatus.isPending}
-                onSubmit={(body) => mutations.updateStatus.mutate(body)}
-              />
-            )}
-          </CardBody>
-        </Card>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle>상태 변경</CardTitle></CardHeader>
-            <CardBody>
-              {mong && <MongStateForm current={mong.stateCode} onSubmit={setPendingState} />}
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>인벤토리 지급</CardTitle></CardHeader>
-            <CardBody>
-              <InventoryGrantForm loading={mutations.grantInventory.isPending} onSubmit={(body) => mutations.grantInventory.mutate(body)} />
-            </CardBody>
-          </Card>
-        </div>
-
+      <div className="space-y-4">
+        {/* 1행 — 스케줄 */}
         <Card>
           <CardHeader>
             <CardTitle>스케줄</CardTitle>
@@ -135,29 +112,81 @@ export function MongDetailPage() {
           <DataTable columns={taskColumns} rows={tasks ?? []} rowKey={(t) => t.taskId} emptyMessage="등록된 스케줄이 없습니다." />
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle>인벤토리</CardTitle></CardHeader>
-          <DataTable columns={inventoryColumns} rows={inventories?.items ?? []} rowKey={(i) => i.inventoryId} emptyMessage="인벤토리가 비어 있습니다." />
-          {inventories && <Pagination page={inventories.page} size={inventories.size} total={inventories.total} onPageChange={setInvPage} />}
-        </Card>
+        {/* 2행 — 지수 수정 | 상태·수면 변경 */}
+        <div className="grid items-stretch gap-4 lg:grid-cols-2">
+          <Card className="flex flex-col">
+            <CardHeader><CardTitle>지수 수정</CardTitle></CardHeader>
+            <CardBody className="flex-1">
+              {mong && (
+                <MongStatusForm
+                  mong={mong}
+                  loading={mutations.updateStatus.isPending}
+                  onSubmit={(body) => mutations.updateStatus.mutate(body)}
+                />
+              )}
+            </CardBody>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>진화 이력</CardTitle>
-            {mong && (
-              <Link className="text-xs text-primary hover:underline" to={`/mongs/members/${mong.accountId}`}>
-                멤버 보기
-              </Link>
-            )}
-          </CardHeader>
-          <DataTable
-            columns={historyColumns}
-            rows={histories ?? []}
-            rowKey={(h) => h.mongEvolutionHistoryId}
-            emptyMessage="진화 이력이 없습니다."
-          />
-        </Card>
+          <Card className="flex flex-col">
+            <CardHeader><CardTitle>상태 변경</CardTitle></CardHeader>
+            <CardBody className="flex-1 space-y-4">
+              {mong && <MongStateForm current={mong.stateCode} onSubmit={setPendingState} />}
+              <div className="border-t pt-4">
+                {mong && (
+                  <MongSleepForm
+                    isSleep={mong.isSleep}
+                    disabled={SLEEP_BLOCKED.includes(mong.stateCode) || mong.level === 0}
+                    loading={mutations.updateSleep.isPending}
+                    onSubmit={(values) => mutations.updateSleep.mutate(values)}
+                  />
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* 3행 — 인벤토리 | 진화 이력 */}
+        <div className="grid items-stretch gap-4 lg:grid-cols-2">
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle>인벤토리</CardTitle>
+              <Button size="sm" variant="secondary" onClick={() => setGranting(true)}>
+                <Plus className="size-4" /> 지급
+              </Button>
+            </CardHeader>
+            <div className="flex-1">
+              <DataTable columns={inventoryColumns} rows={inventories?.items ?? []} rowKey={(i) => i.inventoryId} emptyMessage="인벤토리가 비어 있습니다." />
+            </div>
+            {inventories && <Pagination page={inventories.page} size={inventories.size} total={inventories.total} onPageChange={setInvPage} />}
+          </Card>
+
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle>진화 이력</CardTitle>
+              {mong && (
+                <Link className="text-xs text-primary hover:underline" to={`/mongs/members/${mong.accountId}`}>
+                  멤버 보기
+                </Link>
+              )}
+            </CardHeader>
+            <div className="flex-1">
+              <DataTable
+                columns={historyColumns}
+                rows={histories ?? []}
+                rowKey={(h) => h.mongEvolutionHistoryId}
+                emptyMessage="진화 이력이 없습니다."
+              />
+            </div>
+          </Card>
+        </div>
       </div>
+
+      <InventoryGrantDialog
+        open={granting}
+        loading={mutations.grantInventory.isPending}
+        onClose={() => setGranting(false)}
+        onSubmit={(body) => mutations.grantInventory.mutate(body, { onSuccess: () => setGranting(false) })}
+      />
 
       <ConfirmDialog
         open={pendingState !== null}

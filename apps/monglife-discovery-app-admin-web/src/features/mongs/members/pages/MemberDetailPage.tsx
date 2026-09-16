@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useCollections, useMember, useMemberMutations, useMongList, useOrders, useStep } from '../../queries';
@@ -7,7 +6,6 @@ import { SlotCountForm } from '../components/SlotCountForm';
 import { CollectionPanel } from '../components/CollectionPanel';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, PageHeader } from '@/shared/ui';
 import { DataTable, type Column } from '@/shared/components/DataTable';
-import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { StatCard } from '@/shared/components/StatCard';
 import { formatDateTime, formatNumber } from '@/shared/lib/format';
 import type { Mong, Order } from '../../types';
@@ -20,7 +18,6 @@ export function MemberDetailPage() {
   const { data: mongs } = useMongList({ page: 0, size: 20, accountId });
   const { data: orders } = useOrders({ page: 0, size: 10, accountId });
   const mutations = useMemberMutations(accountId);
-  const [resetting, setResetting] = useState(false);
 
   if (!isLoading && !member) return <EmptyState message="멤버를 찾을 수 없습니다." />;
 
@@ -82,12 +79,6 @@ export function MemberDetailPage() {
               loading={mutations.updateSlotCount.isPending}
               onSubmit={(slotCount) => mutations.updateSlotCount.mutate(slotCount)}
             />
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="text-xs text-muted-foreground">
-                걸음 수 환전 일일 상한을 초기화합니다. 오늘 누적이 0 으로 돌아갑니다.
-              </div>
-              <Button variant="secondary" size="sm" onClick={() => setResetting(true)}>상한 초기화</Button>
-            </div>
           </CardBody>
         </Card>
 
@@ -114,16 +105,6 @@ export function MemberDetailPage() {
           onGrant={(code) => mutations.grantMap.mutate(code)}
         />
       </div>
-
-      <ConfirmDialog
-        open={resetting}
-        title="걸음 수 환전 상한을 초기화합니다"
-        description="오늘 누적 환전 걸음 수가 0 이 됩니다. 어뷰징 억제 장치이므로 사유가 확실할 때만 쓰세요."
-        confirmLabel="초기화"
-        loading={mutations.resetStep.isPending}
-        onClose={() => setResetting(false)}
-        onConfirm={() => mutations.resetStep.mutate(undefined, { onSuccess: () => setResetting(false) })}
-      />
     </>
   );
 }

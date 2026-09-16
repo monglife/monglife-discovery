@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   battleApi, masterApi, membersApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
 } from './api';
-import type { MongStateCode, MongStatusPatch } from './types';
+import type { MongSleepPatch, MongStateCode, MongStatusPatch } from './types';
 
 export const mongsKeys = {
   all: ['mongs'] as const,
@@ -80,7 +80,6 @@ export function useMemberMutations(accountId: number) {
     updateSlotCount: useMutation({ mutationFn: (slotCount: number) => membersApi.updateSlotCount(accountId, slotCount), onSuccess: invalidate }),
     grantMap: useMutation({ mutationFn: (code: string) => membersApi.grantCollectionMap(accountId, code), onSuccess: invalidate }),
     grantMong: useMutation({ mutationFn: (code: string) => membersApi.grantCollectionMong(accountId, code), onSuccess: invalidate }),
-    resetStep: useMutation({ mutationFn: () => stepsApi.reset(accountId), onSuccess: invalidate }),
   };
 }
 
@@ -129,6 +128,7 @@ export function useMongMutations(mongId: number) {
       mutationFn: (body: { stateCode: MongStateCode; reason?: string }) => mongDetailApi.updateState(mongId, body),
       onSuccess: invalidate,
     }),
+    updateSleep: useMutation({ mutationFn: (body: MongSleepPatch) => mongDetailApi.updateSleep(mongId, body), onSuccess: invalidate }),
     remove: useMutation({ mutationFn: () => mongDetailApi.remove(mongId), onSuccess: invalidate }),
     pauseTask: useMutation({ mutationFn: mongDetailApi.pauseTask, onSuccess: invalidate }),
     resumeTask: useMutation({ mutationFn: mongDetailApi.resumeTask, onSuccess: invalidate }),
@@ -143,6 +143,12 @@ export function useMongMutations(mongId: number) {
 /** 대기열은 초 단위로 바뀐다. 로그인 현황 화면과 같은 주기로 다시 읽는다 */
 export const useQueuePlayers = () =>
   useQuery({ queryKey: mongsKeys.queue(), queryFn: battleApi.queue, refetchInterval: 30_000 });
+
+/** 배틀 화면의 세 조회를 한 번에 다시 읽는다 */
+export function useRefreshBattle() {
+  const qc = useQueryClient();
+  return () => qc.invalidateQueries({ queryKey: mongsKeys.all });
+}
 
 export const useMatches = (params: Parameters<typeof battleApi.matches>[0]) =>
   useQuery({ queryKey: mongsKeys.matches(params), queryFn: () => battleApi.matches(params) });
