@@ -56,7 +56,8 @@ export function MatchDetailDialog({ matchId, onClose }: Props) {
     >
       {isLoading && <div className="py-10 text-center text-sm text-muted-foreground">불러오는 중…</div>}
       {data && (
-        <div className="grid gap-5 lg:grid-cols-2">
+        /* 모바일은 두 단이 위아래로 쌓여 길어진다. 모달 안에서 스크롤시킨다 */
+        <div className="grid max-h-[70vh] gap-5 overflow-y-auto pr-1 lg:max-h-none lg:grid-cols-2 lg:overflow-visible lg:pr-0">
           <section>
             <h4 className="mb-2 text-xs font-medium text-muted-foreground">플레이어</h4>
             <ul className="space-y-2">
@@ -88,7 +89,7 @@ export function MatchDetailDialog({ matchId, onClose }: Props) {
             {rounds.length === 0 ? (
               <p className="text-sm text-muted-foreground">선택 기록이 없습니다.</p>
             ) : (
-              <ul className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
+              <ul className="space-y-3 lg:max-h-[28rem] lg:overflow-y-auto lg:pr-1">
                 {rounds.map(([round, picks]) => (
                   <li key={round} className="rounded-md border">
                     <div className="flex items-center justify-between border-b px-3 py-2">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { useOrder, useReconsumeOrder } from '../../queries';
+import { useAccountSummaries } from '../../accounts';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { CopyButton } from '@/shared/components/CopyButton';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, PageHeader } from '@/shared/ui';
@@ -20,6 +21,7 @@ export function OrderDetailPage() {
   const orderId = Number(useParams().orderId);
   const { data, isLoading } = useOrder(orderId);
   const reconsume = useReconsumeOrder();
+  const accounts = useAccountSummaries([data?.order.accountId]);
   const [confirming, setConfirming] = useState(false);
 
   if (!isLoading && !data) return <EmptyState message="주문을 찾을 수 없습니다." />;
@@ -35,10 +37,10 @@ export function OrderDetailPage() {
         description="구글 플레이 조회는 외부 호출이라 실패할 수 있다. 실패해도 주문 자체는 표시된다."
         actions={
           <div className="ml-auto flex gap-2">
-            <Button variant="secondary" onClick={() => history.back()}>
+            <Button variant="secondary" size="sm" onClick={() => history.back()}>
               <ArrowLeft className="size-4" /> 뒤로
             </Button>
-            <Button disabled={!canReconsume} onClick={() => setConfirming(true)}>
+            <Button size="sm" disabled={!canReconsume} onClick={() => setConfirming(true)}>
               <RefreshCw className="size-4" /> 재소비
             </Button>
           </div>
@@ -50,7 +52,11 @@ export function OrderDetailPage() {
           <CardHeader><CardTitle>주문</CardTitle></CardHeader>
           <CardBody className="py-0">
             <Row label="계정">
-              {order ? <Link className="text-primary hover:underline" to={`/mongs/members/${order.accountId}`}>{order.accountId}</Link> : '-'}
+              {order ? (
+              <Link className="text-primary hover:underline" to={`/mongs/members/${order.accountId}`}>
+                {accounts.get(order.accountId)?.email ?? `#${order.accountId}`}
+              </Link>
+            ) : '-'}
             </Row>
             <Row label="상품">{order?.productName ?? order?.productId ?? '-'}</Row>
             <Row label="금액">{formatNumber(order?.price)}</Row>

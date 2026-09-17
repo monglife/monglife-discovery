@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMongList } from '../../queries';
+import { useAccountSummaries } from '../../accounts';
+import { AccountCell } from '../../components/AccountCell';
 import type { Mong, MongStateCode, MongStatusCode } from '../../types';
 import { MongStateBadge, MongStatusBadge } from '../components/MongBadges';
 import { DataTable, type Column } from '@/shared/components/DataTable';
@@ -37,6 +39,7 @@ export function MongListPage() {
     [page, query, accountIdText, accountId, stateCode, statusCode, sort],
   );
   const { data, isLoading } = useMongList(params);
+  const accounts = useAccountSummaries((data?.items ?? []).map((m) => m.accountId));
 
   const reset = () => setPage(0);
 
@@ -44,7 +47,7 @@ export function MongListPage() {
     { key: 'id', header: 'ID', sortKey: 'mongId', cell: (m) => m.mongId, className: 'w-16 text-muted-foreground' },
     { key: 'name', header: '이름', cell: (m) => <span className="font-medium">{m.name}</span> },
     { key: 'type', header: '몽', cell: (m) => `${m.mongName} (Lv.${m.level})` },
-    { key: 'account', header: '계정', sortKey: 'accountId', cell: (m) => m.accountId },
+    { key: 'account', header: '계정', sortKey: 'accountId', cell: (m) => <AccountCell accountId={m.accountId} account={accounts.get(m.accountId)} /> },
     { key: 'state', header: '상태', cell: (m) => <MongStateBadge code={m.stateCode} /> },
     { key: 'status', header: '지수', cell: (m) => <MongStatusBadge code={m.statusCode} /> },
     { key: 'exp', header: '경험치', sortKey: 'exp', cell: (m) => `${formatNumber(Math.round(m.exp))} / ${formatNumber(m.maxStatus)}` },
@@ -56,11 +59,13 @@ export function MongListPage() {
     <>
       <PageHeader title="몽" description="캐릭터 목록. 행을 누르면 지수·상태·스케줄을 볼 수 있다." />
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <SearchInput value={query} onChange={(v) => { setQuery(v); reset(); }} placeholder="몽 이름 검색" />
-        <SearchInput value={accountIdText} onChange={(v) => { setAccountIdText(v.replace(/\D/g, '')); reset(); }} placeholder="계정 ID" className="w-40" />
-        <FilterSelect label="상태" value={stateCode} onChange={(v) => { setStateCode(v); reset(); }} options={STATE_CODES} />
-        <FilterSelect label="지수" value={statusCode} onChange={(v) => { setStatusCode(v); reset(); }} options={STATUS_CODES} />
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <SearchInput value={query} onChange={(v) => { setQuery(v); reset(); }} placeholder="몽 이름 검색" className="w-full sm:w-56" />
+        <SearchInput value={accountIdText} onChange={(v) => { setAccountIdText(v.replace(/\D/g, '')); reset(); }} placeholder="계정 ID" className="w-full sm:w-40" />
+        <div className="flex gap-2">
+          <FilterSelect label="상태" value={stateCode} onChange={(v) => { setStateCode(v); reset(); }} options={STATE_CODES} className="min-w-0 flex-1 sm:w-44 sm:flex-none" />
+          <FilterSelect label="지수" value={statusCode} onChange={(v) => { setStatusCode(v); reset(); }} options={STATUS_CODES} className="min-w-0 flex-1 sm:w-36 sm:flex-none" />
+        </div>
       </div>
 
       <Card>

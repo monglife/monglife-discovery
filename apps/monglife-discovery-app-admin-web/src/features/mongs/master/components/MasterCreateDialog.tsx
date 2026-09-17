@@ -135,7 +135,8 @@ export function MasterCreateDialog({ open, loading, error, onClose, onSubmit }: 
         </>
       }
     >
-      <div className="space-y-3">
+      {/* 종류에 따라 입력 칸이 열 개를 넘는다. 모바일에서 모달이 화면 밖으로 나가지 않게 여기서 끊는다 */}
+      <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
         <Field label="종류">
           <Select value={kind} onChange={(e) => setKind(e.target.value as MasterKind)}>
             {KINDS.map((k) => (

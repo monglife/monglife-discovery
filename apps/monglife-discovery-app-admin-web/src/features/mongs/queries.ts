@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  battleApi, masterApi, masterCreateApi, membersApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
+  battleApi, masterApi, masterCreateApi, masterDeleteApi, membersApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
 } from './api';
+import type { MasterKind } from './api';
 import type { MongSleepPatch, MongStateCode, MongStatusPatch } from './types';
 
 export const mongsKeys = {
@@ -186,6 +187,15 @@ export function useCreateMaster() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: masterCreateApi.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: mongsKeys.all }),
+  });
+}
+
+/** 마스터 데이터 삭제 */
+export function useDeleteMaster() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, id }: { kind: MasterKind; id: string | number }) => masterDeleteApi.remove(kind, id),
     onSuccess: () => qc.invalidateQueries({ queryKey: mongsKeys.all }),
   });
 }

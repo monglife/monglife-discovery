@@ -74,10 +74,11 @@ export function BattlePage() {
         title="배틀"
         description="대기열은 30초마다 스스로 다시 읽는다. 지금 바로 보려면 새로고침."
         actions={
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{formatDateTimeSec(dataUpdatedAt)} 기준</span>
-            <Button variant="secondary" loading={isFetching} onClick={refresh}>
-              <RefreshCw className="size-4" /> 새로고침
+          <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
+            <span className="truncate text-xs text-muted-foreground">{formatDateTimeSec(dataUpdatedAt)} 기준</span>
+            <Button variant="secondary" size="sm" className="shrink-0" loading={isFetching} onClick={refresh}>
+              <RefreshCw className="size-4" />
+              <span className="hidden sm:inline">새로고침</span>
             </Button>
           </div>
         }
@@ -108,9 +109,9 @@ export function BattlePage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <CardTitle>매치</CardTitle>
-          <FilterSelect label="상태" value={stateCode} onChange={(v) => { setStateCode(v); setPage(0); }} options={STATE_CODES} />
+          <FilterSelect label="상태" value={stateCode} onChange={(v) => { setStateCode(v); setPage(0); }} options={STATE_CODES} className="w-full sm:w-40" />
         </CardHeader>
         <DataTable
           columns={matchColumns}

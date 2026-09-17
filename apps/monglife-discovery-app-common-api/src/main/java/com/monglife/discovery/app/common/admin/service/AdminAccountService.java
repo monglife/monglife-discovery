@@ -1,6 +1,7 @@
 package com.monglife.discovery.app.common.admin.service;
 
 import com.monglife.discovery.app.common.admin.dto.response.AdminAccountResponseDto;
+import com.monglife.discovery.app.common.admin.dto.response.AdminAccountSummaryResponseDto;
 import com.monglife.discovery.app.common.admin.dto.response.AdminDeviceResponseDto;
 import com.monglife.discovery.app.common.admin.dto.response.AdminLoginHistoryResponseDto;
 import com.monglife.discovery.app.common.admin.util.AdminPage;
@@ -28,6 +29,9 @@ import java.util.stream.Collectors;
 public class AdminAccountService {
 
     public static final Set<String> SORT_KEYS = Set.of("accountId", "createdAt");
+
+    /** 한 번에 물어볼 수 있는 계정 수 상한 */
+    private static final int MAX_SUMMARY_IDS = 200;
 
     private final AccountService accountService;
     private final DeviceService deviceService;
@@ -78,6 +82,24 @@ public class AdminAccountService {
             tokenService.deleteTokensByAccountId(accountId);
         }
         return AdminMapper.account(updated);
+    }
+
+    /**
+     * 계정 ID 목록 → 이름표. 없는 ID 는 응답에서 빠진다(호출 쪽이 '-' 로 채운다).
+     * 한 번에 너무 많이 물어보지 못하게 상한을 둔다.
+     */
+    @Transactional(readOnly = true)
+    public List<AdminAccountSummaryResponseDto> getSummaries(Collection<Long> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) return List.of();
+        List<Long> limited = accountIds.stream().distinct().limit(MAX_SUMMARY_IDS).toList();
+        return accountService.getAccounts(limited).stream()
+                .map(account -> AdminAccountSummaryResponseDto.builder()
+                        .accountId(account.getAccountId())
+                        .email(account.getEmail())
+                        .name(account.getName())
+                        .isDeleted(account.getIsDeleted())
+                        .build())
+                .toList();
     }
 
     /** 여러 곳에서 쓰는 계정 조인 */

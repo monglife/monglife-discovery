@@ -141,3 +141,11 @@ export const masterCreateApi = {
   create: (body: MasterCreateBody) =>
     mongsApi.post<{ kind: string; code: string }>(USER_KINDS.includes(body.kind) ? `${USER}/master` : `${CHARACTER}/master`, body),
 };
+
+/** 종류별 삭제 식별자. 맵·환전 상품은 user 서비스로 간다 */
+export const masterDeleteApi = {
+  remove: (kind: MasterKind, id: string | number) =>
+    mongsApi.delete<{ kind: string; id: string }>(
+      `${USER_KINDS.includes(kind) ? USER : CHARACTER}/master/${kind}/${id}`,
+    ),
+};

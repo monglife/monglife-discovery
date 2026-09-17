@@ -6,6 +6,7 @@ import { StarPointForm } from '../components/StarPointForm';
 import { SlotCountForm } from '../components/SlotCountForm';
 import { CollectionPanel } from '../components/CollectionPanel';
 import { CollectionGrantDialog } from '../components/CollectionGrantDialog';
+import { useAccountSummaries } from '../../accounts';
 import { Badge, Button, Card, CardBody, CardHeader, CardTitle, EmptyState, PageHeader } from '@/shared/ui';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { StatCard } from '@/shared/components/StatCard';
@@ -21,6 +22,8 @@ export function MemberDetailPage() {
   const { data: orders } = useOrders({ page: 0, size: 10, accountId });
   const mutations = useMemberMutations(accountId);
   const [granting, setGranting] = useState<'MONG' | 'MAP' | null>(null);
+  const accounts = useAccountSummaries([accountId]);
+  const account = accounts.get(accountId);
 
   if (!isLoading && !member) return <EmptyState message="멤버를 찾을 수 없습니다." />;
 
@@ -42,10 +45,10 @@ export function MemberDetailPage() {
   return (
     <>
       <PageHeader
-        title={`멤버 #${accountId}`}
-        description="스타 포인트·슬롯을 바꾸면 앱에 곧바로 반영된다(MQTT)."
+        title={account?.email ?? `멤버 #${accountId}`}
+        description={`${account?.isDeleted ? '탈퇴한 계정 · ' : ''}스타 포인트·슬롯을 바꾸면 앱에 곧바로 반영된다(MQTT).`}
         actions={
-          <Button variant="secondary" className="ml-auto" onClick={() => history.back()}>
+          <Button variant="secondary" size="sm" className="ml-auto" onClick={() => history.back()}>
             <ArrowLeft className="size-4" /> 뒤로
           </Button>
         }
@@ -62,10 +65,10 @@ export function MemberDetailPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        <Card className="flex flex-col">
           <CardHeader><CardTitle>스타 포인트 가감</CardTitle></CardHeader>
-          <CardBody>
+          <CardBody className="flex-1">
             <StarPointForm
               current={member?.starPoint ?? 0}
               loading={mutations.adjustStarPoint.isPending}
@@ -74,9 +77,9 @@ export function MemberDetailPage() {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader><CardTitle>슬롯 수</CardTitle></CardHeader>
-          <CardBody className="space-y-4">
+          <CardBody className="flex-1">
             <SlotCountForm
               current={member?.slotCount ?? 1}
               loading={mutations.updateSlotCount.isPending}

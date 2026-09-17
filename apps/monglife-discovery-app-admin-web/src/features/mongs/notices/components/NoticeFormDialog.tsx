@@ -48,7 +48,7 @@ export function NoticeFormDialog({ open, notice, loading, onClose, onSubmit }: P
           <Input {...form.register('title')} placeholder="공지 제목" />
         </Field>
         <Field label="내용" error={form.formState.errors.content?.message}>
-          <Textarea rows={10} {...form.register('content')} placeholder="공지 내용" />
+          <Textarea rows={6} className="sm:min-h-56" {...form.register('content')} placeholder="공지 내용" />
         </Field>
       </form>
     </Dialog>

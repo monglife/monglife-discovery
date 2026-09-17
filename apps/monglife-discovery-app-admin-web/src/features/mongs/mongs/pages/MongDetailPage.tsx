@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import { useEvolutionHistories, useInventories, useMong, useMongMutations, useTasks } from '../../queries';
+import { useAccountSummaries } from '../../accounts';
 import type { EvolutionHistory, Inventory, MongStateCode, Task } from '../../types';
 import { MongStateBadge, MongStatusBadge } from '../components/MongBadges';
 import { MongStatusForm } from '../components/MongStatusForm';
@@ -29,6 +30,8 @@ export function MongDetailPage() {
   const mutations = useMongMutations(mongId);
   // 스케줄은 목록이 통째로 온다. 몽 하나에 최대 대여섯 개라 클라이언트에서 끊는다.
   const taskPage = useClientPage(tasks, 3);
+  const accounts = useAccountSummaries([mong?.accountId]);
+  const account = accounts.get(mong?.accountId);
   const [removing, setRemoving] = useState(false);
   const [granting, setGranting] = useState(false);
   const [pendingState, setPendingState] = useState<{ stateCode: MongStateCode; reason?: string } | null>(null);
@@ -81,13 +84,13 @@ export function MongDetailPage() {
     <>
       <PageHeader
         title={mong ? `${mong.name} #${mong.mongId}` : `몽 #${mongId}`}
-        description={mong ? `${mong.mongName} · Lv.${mong.level} · 계정 ${mong.accountId}` : undefined}
+        description={mong ? `${mong.mongName} · Lv.${mong.level} · ${account?.email ?? `#${mong.accountId}`}` : undefined}
         actions={
           <div className="ml-auto flex gap-2">
-            <Button variant="secondary" onClick={() => history.back()}>
+            <Button variant="secondary" size="sm" onClick={() => history.back()}>
               <ArrowLeft className="size-4" /> 뒤로
             </Button>
-            <Button variant="danger" onClick={() => setRemoving(true)}>
+            <Button variant="danger" size="sm" onClick={() => setRemoving(true)}>
               <Trash2 className="size-4" /> 삭제
             </Button>
           </div>

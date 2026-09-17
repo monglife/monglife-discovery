@@ -67,14 +67,14 @@ export function NoticeListPage() {
         title="공지 사항"
         description="앱 공지 목록. 숨김은 앱에서 보이지 않게만 하고 데이터는 남는다."
         actions={
-          <Button className="ml-auto" onClick={() => setCreating(true)}>
+          <Button size="sm" className="ml-auto" onClick={() => setCreating(true)}>
             <Plus className="size-4" /> 공지 등록
           </Button>
         }
       />
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(0); }} placeholder="제목·내용 검색" />
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <SearchInput value={query} onChange={(v) => { setQuery(v); setPage(0); }} placeholder="제목·내용 검색" className="w-full sm:w-64" />
       </div>
 
       <Card>

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useCreateMaster, useMaster } from '../../queries';
+import { useCreateMaster, useDeleteMaster, useMaster } from '../../queries';
 import { MasterCreateDialog } from '../components/MasterCreateDialog';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
+import type { MasterKind } from '../../api';
 import type { ExchangeStarPointProduct, FeedItem, MapType, MongType, RandomDraw, TrainingType } from '../../types';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { useClientPage } from '@/shared/components/ClientPagination';
@@ -10,6 +12,17 @@ import { cn } from '@/shared/lib/cn';
 import { formatNumber } from '@/shared/lib/format';
 
 type TabKey = 'mongTypes' | 'foods' | 'snacks' | 'trainingTypes' | 'randomDraws' | 'mapTypes' | 'exchangeProducts';
+
+/** 탭 → 삭제 API 의 종류. 식별자는 각 표의 PK 다 */
+const KIND_OF: Record<TabKey, MasterKind> = {
+  mongTypes: 'MONG_TYPE',
+  foods: 'FOOD',
+  snacks: 'SNACK',
+  trainingTypes: 'TRAINING_TYPE',
+  randomDraws: 'RANDOM_DRAW',
+  mapTypes: 'MAP_TYPE',
+  exchangeProducts: 'EXCHANGE_STAR_POINT_PRODUCT',
+};
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'mongTypes', label: '몽 타입' },
@@ -76,26 +89,47 @@ export function MasterDataPage() {
   const [creating, setCreating] = useState(false);
   const { data, isLoading } = useMaster(tab);
   const create = useCreateMaster();
+  const remove = useDeleteMaster();
+  const [removing, setRemoving] = useState<{ id: string | number; label: string } | null>(null);
   // 마스터 조회는 페이징이 없다. 통째로 받아 화면에서 끊는다.
   const page = useClientPage(data as unknown[] | undefined, 10);
+
+  // 삭제 열. 표마다 PK 가 달라 행에서 식별자를 뽑는 함수를 받는다.
+  const deleteColumn = <T,>(id: (row: T) => string | number, label: (row: T) => string): Column<T> => ({
+    key: 'delete',
+    header: '',
+    className: 'text-right',
+    cell: (row) => (
+      <span onClick={(e) => e.stopPropagation()}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-danger hover:bg-danger-soft"
+          onClick={() => setRemoving({ id: id(row), label: label(row) })}
+        >
+          삭제
+        </Button>
+      </span>
+    ),
+  });
 
   // 탭마다 행 타입이 달라 컬럼·키를 여기서 고른다. 행은 현재 페이지 몫만 넘긴다.
   const table = () => {
     const rows = page.items;
     switch (tab) {
       case 'mongTypes':
-        return <DataTable columns={mongTypeColumns} rows={rows as MongType[]} rowKey={(r) => r.mongCode} loading={isLoading} />;
+        return <DataTable columns={[...mongTypeColumns, deleteColumn<MongType>((r) => r.mongTypeId, (r) => `${r.mongName} (${r.mongCode})`)]} rows={rows as MongType[]} rowKey={(r) => r.mongCode} loading={isLoading} />;
       case 'foods':
       case 'snacks':
-        return <DataTable columns={feedColumns} rows={rows as FeedItem[]} rowKey={(r) => r.code} loading={isLoading} />;
+        return <DataTable columns={[...feedColumns, deleteColumn<FeedItem>((r) => r.id, (r) => `${r.name} (${r.code})`)]} rows={rows as FeedItem[]} rowKey={(r) => r.code} loading={isLoading} />;
       case 'trainingTypes':
-        return <DataTable columns={trainingColumns} rows={rows as TrainingType[]} rowKey={(r) => r.trainingCode} loading={isLoading} />;
+        return <DataTable columns={[...trainingColumns, deleteColumn<TrainingType>((r) => r.trainingTypeId, (r) => `${r.trainingName} (${r.trainingCode})`)]} rows={rows as TrainingType[]} rowKey={(r) => r.trainingCode} loading={isLoading} />;
       case 'randomDraws':
-        return <DataTable columns={randomDrawColumns} rows={rows as RandomDraw[]} rowKey={(r) => r.randomDrawId} loading={isLoading} />;
+        return <DataTable columns={[...randomDrawColumns, deleteColumn<RandomDraw>((r) => r.randomDrawId, (r) => `${r.randomDrawName} (${r.randomDrawCode})`)]} rows={rows as RandomDraw[]} rowKey={(r) => r.randomDrawId} loading={isLoading} />;
       case 'mapTypes':
-        return <DataTable columns={mapColumns} rows={rows as MapType[]} rowKey={(r) => r.mapCode} loading={isLoading} />;
+        return <DataTable columns={[...mapColumns, deleteColumn<MapType>((r) => r.mapTypeId, (r) => `${r.mapName} (${r.mapCode})`)]} rows={rows as MapType[]} rowKey={(r) => r.mapCode} loading={isLoading} />;
       case 'exchangeProducts':
-        return <DataTable columns={exchangeColumns} rows={rows as ExchangeStarPointProduct[]} rowKey={(r) => r.productId} loading={isLoading} />;
+        return <DataTable columns={[...exchangeColumns, deleteColumn<ExchangeStarPointProduct>((r) => r.productId, (r) => `${r.productName} (${r.productId})`)]} rows={rows as ExchangeStarPointProduct[]} rowKey={(r) => r.productId} loading={isLoading} />;
     }
   };
 
@@ -105,7 +139,7 @@ export function MasterDataPage() {
         title="마스터 데이터"
         description="등록한 코드는 공통 코드로도 함께 들어간다. 값 수정은 아직 SQL 배포로 한다."
         actions={
-          <Button className="ml-auto" onClick={() => setCreating(true)}>
+          <Button size="sm" className="ml-auto" onClick={() => setCreating(true)}>
             <Plus className="size-4" /> 등록
           </Button>
         }
@@ -118,7 +152,7 @@ export function MasterDataPage() {
             type="button"
             onClick={() => { setTab(t.key); page.setPage(0); }}
             className={cn(
-              'rounded-md px-3 py-1.5 text-sm',
+              'rounded-md px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
               tab === t.key ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground hover:bg-surface-muted',
             )}
           >
@@ -138,6 +172,17 @@ export function MasterDataPage() {
         error={create.error instanceof Error ? create.error.message : undefined}
         onClose={() => { setCreating(false); create.reset(); }}
         onSubmit={(body) => create.mutate(body, { onSuccess: () => setCreating(false) })}
+      />
+
+      <ConfirmDialog
+        open={removing !== null}
+        title="마스터 데이터를 삭제합니다"
+        description={`${removing?.label ?? ''} — 표의 행만 지웁니다. 공통 코드는 남으므로 같은 코드로 다시 등록할 수 있습니다. 이미 이 코드를 쓰고 있는 인벤토리·주문 기록은 그대로 남습니다.`}
+        confirmLabel="삭제"
+        danger
+        loading={remove.isPending}
+        onClose={() => setRemoving(null)}
+        onConfirm={() => removing && remove.mutate({ kind: KIND_OF[tab], id: removing.id }, { onSuccess: () => setRemoving(null) })}
       />
     </>
   );
