@@ -11,38 +11,44 @@ MongLife 디스커버리 **관리자 웹**. Vite + React 18 + TypeScript + React
 ```bash
 nvm use            # .nvmrc → Node 24
 npm install
-npm run dev        # http://localhost:5173  (PROFILE=local → localhost:8010 실서버)
+npm run dev        # http://localhost:5173  (PROFILE=dev → 127.0.0.1:8010 실서버)
 ```
 
 | 스크립트 | |
 |---|---|
-| `npm run dev` | 개발 서버 |
+| `npm run dev` | 개발 서버 (dev 프로파일) |
 | `npm run build` | `tsc -b` + Vite 빌드 → `dist/` |
 | `npm run typecheck` / `npm run lint` / `npm run format` | |
 
 로그인은 **이메일 인증(6자리 코드)** 이다. 실서버는 `monglife_account.role = 'ADMIN'` 인 계정 이메일로 코드를 보낸다
-(local 프로파일의 common-api 는 `env.mail.enabled=false` 라 코드를 서버 로그 `[mail disabled]` 에 찍는다).
+(local/dev 프로파일의 common-api 는 `env.mail.enabled=false` 라 코드를 서버 로그 `[mail disabled]` 에 찍는다).
 목(`VITE_ENABLE_MSW=true`)에서는 `admin@monglife.cloud` 만 통과하고 코드는 브라우저 콘솔에 `[mock] email code …`, `000000` 은 항상 통과.
 
-### 프로파일 (local / dev / stg / prd)
+### 프로파일 (dev / stg / prd)
 
 접속 주소는 퍼블릭 저장소에 두지 않는다. 프로파일 파일은 **configs 서브모듈**의
 `properties/apps/monglife-discovery-app-admin-web/<PROFILE>.env` 에 있고, `vite.config.ts` 가
 `PROFILE` 환경변수로 골라 읽는다(규칙·키 설명은 그쪽 `README.md`).
 
-| 명령 | PROFILE | API |
-|---|---|---|
-| `npm run dev` | local | `/api` → 개발 서버 프록시 → `localhost:8010` (게이트웨이 `localhost:8000`) |
-| `npm run dev:dev` | dev | 위와 같음 |
-| `npm run build:stg` | stg | `http://100.0.0.10:8010/api` (절대 주소) |
-| `npm run build:prd` | prd | `http://100.0.0.20:8010/api` (절대 주소) |
+화면을 띄우는 건 언제나 로컬 개발 서버(`localhost:5173`)이고, **프로파일은 백엔드를 어디로 보낼지만 고른다.**
 
-- **local / dev 는 CORS 가 없다.** 브라우저는 같은 출처 `/api` 만 부르고, Vite 프록시가
-  `/api/character`·`/api/user` 는 게이트웨이로, 나머지는 common-api 로 넘긴다.
-- stg / prd 는 다른 출처라 common-api 의 `env.admin.allowed-origins` 에 관리자 웹 출처가 있어야 한다.
-  `admin.monglife.cloud` 처럼 인그레스 뒤에서 서비스할 땐 `VITE_API_BASE_URL=/api` 로 두면
-  인그레스가 같은 호스트 `/api/` 를 common-api 로 넘겨 CORS 가 없다(`configs/deploy/product/edge`).
-- `--mode` 를 쓰지 않는다. Vite 가 모드 이름 `local` 을 금지한다.
+| 명령 | PROFILE | 백엔드 |
+|---|---|---|
+| `npm run dev` | dev (기본) | 내 PC `127.0.0.1` (:8010 common-api, :8000 게이트웨이) |
+| `npm run dev:stg` | stg | stage `100.0.0.10` |
+| `npm run dev:prd` | prd | **운영** `100.0.0.20` |
+
+빌드는 `npm run build:stg` / `npm run build:prd`. 실제로 배포되는 건 prd 뿐이다
+(`configs/deploy/stage` 에 edge 가 없다).
+
+- **세 프로파일 모두 CORS 가 없다.** `VITE_API_BASE_URL` 이 셋 다 `/api` 라 브라우저는 같은 출처만
+  부르고, Vite 프록시가 `/api/character`·`/api/user` 는 게이트웨이로, 나머지는 common-api 로 넘긴다.
+  절대 주소로 두면 `localhost:5173` 이 `env.admin.allowed-origins` 에 없어 막힌다.
+- `build:prd` 산출물도 같은 `/api` 로 동작한다. `admin.monglife.cloud` 의 인그레스가 같은 호스트
+  `/api/` 를 common-api 로 넘기기 때문이다(`configs/deploy/product/edge`).
+- `100.0.0.x` 는 사설 IP 라 **VPN 안에서만 닿는다.**
+- ⚠ `dev:prd` 는 로컬 화면에서 실제 운영 데이터를 보고 고친다. 조회 외 동작은 신중히.
+- `--mode` 를 쓰지 않는다. `<프로파일>.env` 라 Vite 가 자동으로 읽지 않는다.
 - 서브모듈이 비어 있으면 기본값(`/api`, MSW 켜짐)으로 뜬다. 목 모드로 돌리려면 프로파일의
   `VITE_ENABLE_MSW=true`.
 
