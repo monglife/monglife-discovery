@@ -22,6 +22,7 @@
   --color-success: var(--color-success);
   --color-warning: var(--color-warning);
   --color-danger: var(--color-danger);
+  --color-danger-hover: var(--color-danger-hover);
   --color-danger-soft: var(--color-danger-soft);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 4px);
@@ -44,5 +45,36 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+    누르는 것은 손가락 커서로 보이게 한다.
+
+    브라우저 기본값은 button 이 cursor:default(화살표)이고 Tailwind v4 의 preflight 도
+    이걸 건드리지 않는다. <a> 만 pointer 라, 버튼·탭·토글이 전부 클릭되는데도 커서가
+    안 바뀌어 눌리는 줄 모른다. 여기서 한 번에 되돌린다.
+
+    컴포넌트마다 cursor-pointer 를 달지 않는 이유는 빠뜨리기 쉬워서다 - 실제로 DataTable
+    행에만 붙어 있고 버튼에는 하나도 없었다.
+
+    label 은 for 로 컨트롤을 가리킬 때만 클릭 대상이다. 그냥 라벨까지 손가락이 되면
+    누를 수 있다는 잘못된 신호가 된다.
+  */
+  button:not(:disabled),
+  summary,
+  [role='button']:not([aria-disabled='true']),
+  [role='tab']:not([aria-disabled='true']),
+  label[for],
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* 비활성은 "지금은 안 된다"를 커서로도 알린다 */
+  button:disabled,
+  select:disabled,
+  [role='button'][aria-disabled='true'] {
+    cursor: not-allowed;
   }
 }

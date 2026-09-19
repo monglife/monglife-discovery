@@ -1,11 +1,12 @@
 import { useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { useAccountMissions } from '../../queries';
 import { CYCLE_LABEL, CYCLES, STATE_LABEL, STATE_TONE } from '../labels';
 import type { AccountMission, MissionCycleCode } from '../../types';
-import { Badge, Card, CardHeader, CardTitle } from '@/shared/ui';
+import { Badge, Button, Card, CardHeader, CardTitle } from '@/shared/ui';
 import { cn } from '@/shared/lib/cn';
 import { DataTable, type Column } from '@/shared/components/DataTable';
-import { formatDateTime, formatNumber } from '@/shared/lib/format';
+import { formatDateTime, formatDateTimeSec, formatNumber } from '@/shared/lib/format';
 
 const columns: Column<AccountMission>[] = [
   {
@@ -62,7 +63,7 @@ const columns: Column<AccountMission>[] = [
  */
 export function MissionProgressCard({ accountId }: { accountId: number }) {
   const [tab, setTab] = useState<MissionCycleCode>('DAILY');
-  const { data, isLoading, isError, error } = useAccountMissions(accountId);
+  const { data, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useAccountMissions(accountId);
   const rows = data ?? [];
 
   const byCycle = (cycle: MissionCycleCode) => rows.filter((r) => r.cycleCode === cycle);
@@ -74,7 +75,13 @@ export function MissionProgressCard({ accountId }: { accountId: number }) {
     <Card className="mt-4">
       <CardHeader>
         <CardTitle>미션 달성 현황</CardTitle>
-        {cycleKey && <span className="font-mono text-xs text-muted-foreground">{cycleKey}</span>}
+        <span className="flex min-w-0 items-end gap-2">
+          {cycleKey && <span className="font-mono text-xs text-muted-foreground">{cycleKey}</span>}
+          <span className="truncate text-xs text-muted-foreground">{formatDateTimeSec(dataUpdatedAt)} 기준</span>
+          <Button size="sm" variant="secondary" className="shrink-0" disabled={isFetching} onClick={() => refetch()}>
+            <RefreshCw className={cn('size-4', isFetching && 'animate-spin')} /> 새로고침
+          </Button>
+        </span>
       </CardHeader>
 
       {isError ? (
@@ -91,8 +98,8 @@ export function MissionProgressCard({ accountId }: { accountId: number }) {
                   type="button"
                   onClick={() => setTab(cycle)}
                   className={cn(
-                    'rounded-md px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
-                    tab === cycle ? 'bg-primary text-primary-foreground' : 'bg-surface-muted text-muted-foreground hover:bg-surface',
+                    'rounded-md border px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
+                    tab === cycle ? 'border-primary-hover bg-primary text-primary-foreground' : 'border-border bg-surface-muted text-muted-foreground hover:bg-surface',
                   )}
                 >
                   {CYCLE_LABEL[cycle]}

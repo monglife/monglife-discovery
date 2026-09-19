@@ -19,6 +19,7 @@ import { MongDetailPage } from '@/features/mongs/mongs/pages/MongDetailPage';
 import { OrderListPage } from '@/features/mongs/orders/pages/OrderListPage';
 import { OrderDetailPage } from '@/features/mongs/orders/pages/OrderDetailPage';
 import { BattlePage } from '@/features/mongs/battle/pages/BattlePage';
+import { MissionListPage } from '@/features/mongs/missions/pages/MissionListPage';
 import { MasterDataPage } from '@/features/mongs/master/pages/MasterDataPage';
 import { GameStatsPage } from '@/features/mongs/stats/pages/GameStatsPage';
 import { NotFoundPage } from './NotFoundPage';
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
           { path: 'mongs/orders', element: <OrderListPage /> },
           { path: 'mongs/orders/:orderId', element: <OrderDetailPage /> },
           { path: 'mongs/battle', element: <BattlePage /> },
+          { path: 'mongs/missions', element: <MissionListPage /> },
           { path: 'mongs/master', element: <MasterDataPage /> },
           { path: 'mongs/stats', element: <GameStatsPage /> },
           { path: '*', element: <NotFoundPage /> },

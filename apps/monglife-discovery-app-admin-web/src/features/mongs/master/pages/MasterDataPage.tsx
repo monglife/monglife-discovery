@@ -152,8 +152,8 @@ export function MasterDataPage() {
             type="button"
             onClick={() => { setTab(t.key); page.setPage(0); }}
             className={cn(
-              'rounded-md px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
-              tab === t.key ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground hover:bg-surface-muted',
+              'rounded-md border px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
+              tab === t.key ? 'border-primary-hover bg-primary text-primary-foreground' : 'border-border bg-surface text-muted-foreground hover:bg-surface-muted',
             )}
           >
             {t.label}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { useOrder, useReconsumeOrder } from '../../queries';
 import { useAccountSummaries } from '../../accounts';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
@@ -37,9 +37,6 @@ export function OrderDetailPage() {
         description="구글 플레이 조회는 외부 호출이라 실패할 수 있다. 실패해도 주문 자체는 표시된다."
         actions={
           <div className="ml-auto flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => history.back()}>
-              <ArrowLeft className="size-4" /> 뒤로
-            </Button>
             <Button size="sm" disabled={!canReconsume} onClick={() => setConfirming(true)}>
               <RefreshCw className="size-4" /> 재소비
             </Button>

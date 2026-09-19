@@ -4,12 +4,12 @@ import { useMissionMutations, useMissions } from '../../queries';
 import { MissionCreateDialog } from '../components/MissionCreateDialog';
 import { MissionDetailDialog } from '../components/MissionDetailDialog';
 import {
-  ACTION_LABEL, CYCLE_KEY_HINT, CYCLE_LABEL, CYCLES, GOAL_TYPE_LABEL, REWARD_TYPE_LABEL,
+  ACTION_LABEL, CYCLE_LABEL, CYCLES, GOAL_TYPE_LABEL, REWARD_TYPE_LABEL, groupLabel, periodLabel,
 } from '../labels';
 import type { Mission, MissionCycleCode, MissionReward } from '../../types';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { useClientPage } from '@/shared/components/ClientPagination';
-import { Badge, Button, Card, Dialog, PageHeader, Pagination, Switch } from '@/shared/ui';
+import { Badge, Button, Card, Dialog, PageHeader, Pagination, Select, Switch } from '@/shared/ui';
 import { cn } from '@/shared/lib/cn';
 import { formatNumber } from '@/shared/lib/format';
 
@@ -27,6 +27,8 @@ const rewardText = (r: MissionReward) =>
 
 export function MissionListPage() {
   const [tab, setTab] = useState<TabKey>('ALL');
+  const [group, setGroup] = useState<'ALL' | number>('ALL');
+  const [published, setPublished] = useState<'ALL' | 'Y' | 'N'>('ALL');
   const [creating, setCreating] = useState(false);
   const [removing, setRemoving] = useState<Mission | null>(null);
   const [opened, setOpened] = useState<Mission | null>(null);
@@ -35,9 +37,20 @@ export function MissionListPage() {
   const { create, update, setActive, remove } = useMissionMutations();
 
   const missions = useMemo(() => data ?? [], [data]);
+  /** 목록에 실제로 존재하는 그룹만 고르게 한다. 주간·월간만 로테이션을 쓴다 */
+  const groups = useMemo(
+    () => [...new Set(missions.filter((m) => m.cycleCode !== 'DAILY').map((m) => m.rotationGroup))].sort((a, b) => a - b),
+    [missions],
+  );
+
   const rows = useMemo(
     () =>
-      (tab === 'ALL' ? missions : missions.filter((m) => m.cycleCode === tab))
+      missions
+        .filter((m) => (tab === 'ALL' ? true : m.cycleCode === tab))
+        // 그룹을 고르면 일간은 뺀다. 일간은 로테이션을 쓰지 않아 전부 그룹 0 인데,
+        // 그대로 두면 "그룹 1" 을 골랐을 때 관계없는 일간 20개가 같이 뜬다.
+        .filter((m) => (group === 'ALL' ? true : m.cycleCode !== 'DAILY' && m.rotationGroup === group))
+        .filter((m) => (published === 'ALL' ? true : m.isPublished === (published === 'Y')))
         // 서버는 정렬을 보장하지 않는다. 주기 → sortOrder → 코드 순으로 고정한다.
         .slice()
         .sort((a, b) =>
@@ -47,7 +60,7 @@ export function MissionListPage() {
               ? a.sortOrder - b.sortOrder
               : a.missionCode.localeCompare(b.missionCode),
         ),
-    [missions, tab],
+    [missions, tab, group, published],
   );
 
   // 미션 목록은 페이징이 없다. 통째로 받아 화면에서 끊는다.
@@ -56,7 +69,6 @@ export function MissionListPage() {
   // 저장 후 목록이 다시 오면 열린 모달도 최신 행을 가리키게 한다
   const openedMission = opened ? (missions.find((m) => m.missionId === opened.missionId) ?? null) : null;
 
-  const activeByCycle = (cycle: MissionCycleCode) => missions.filter((m) => m.cycleCode === cycle && m.isActive).length;
 
   const columns: Column<Mission>[] = [
     { key: 'code', header: '코드', cell: (r) => <span className="font-mono text-xs">{r.missionCode}</span> },
@@ -91,6 +103,22 @@ export function MissionListPage() {
       ),
     },
     {
+      key: 'group',
+      header: '그룹',
+      // 일간은 로테이션을 쓰지 않는다. 값이 있어도 의미가 없으므로 비워 둔다.
+      cell: (r) =>
+        r.cycleCode === 'DAILY'
+          ? <span className="text-muted-foreground">-</span>
+          : <span className={r.rotationGroup === r.currentRotationGroup ? 'font-medium' : 'text-muted-foreground'}>
+              {groupLabel(r.rotationGroup)}
+            </span>,
+    },
+    {
+      key: 'published',
+      header: '게시',
+      cell: (r) => (r.isPublished ? <Badge tone="success">게시 중</Badge> : <span className="text-muted-foreground">-</span>),
+    },
+    {
       key: 'active',
       header: '노출',
       // 진행 중인 사용자가 있어도 막히지 않는다. 이미 적재된 주기는 그대로 두고 다음 주기부터 빠진다.
@@ -111,7 +139,14 @@ export function MissionListPage() {
       className: 'text-right',
       cell: (r) => (
         <span onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="ghost" className="text-danger hover:bg-danger-soft" onClick={() => { remove.reset(); setRemoving(r); }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-danger hover:bg-danger-soft"
+            disabled={r.isPublished}
+            title={r.isPublished ? '게시 중에는 삭제할 수 없습니다. 노출을 내리거나 다음 주기를 기다리세요.' : undefined}
+            onClick={() => { remove.reset(); setRemoving(r); }}
+          >
             삭제
           </Button>
         </span>
@@ -123,7 +158,7 @@ export function MissionListPage() {
     <>
       <PageHeader
         title="미션"
-        description="주기 초기화 배치가 없습니다. 사용자 미션은 앱이 미션 화면을 열 때 그 주기 몫이 적재되고, 주기가 바뀌면 새 행이 생깁니다."
+        description="주간은 월요일 00시, 월간은 1일에 주기가 바뀝니다(KST). 주간·월간은 로테이션 그룹이 주기마다 번갈아 나가고, 게시 중인 미션은 수정·삭제가 막힙니다."
         actions={
           <Button size="sm" className="ml-auto" onClick={() => { create.reset(); setCreating(true); }}>
             <Plus className="size-4" /> 등록
@@ -131,38 +166,85 @@ export function MissionListPage() {
         }
       />
 
-      {/* 주기마다 노출 규칙이 달라 운영자가 헷갈리기 쉬운 부분을 먼저 보여 준다 */}
+      {/* 주기마다 노출 규칙이 다르고, 지금 어느 그룹이 나가는지가 운영에서 가장 먼저 궁금하다 */}
       <div className="mb-3 grid gap-2 sm:grid-cols-3">
-        {CYCLES.map((c) => (
-          <Card key={c} className="p-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-medium">{CYCLE_LABEL[c]}</span>
-              <span className="text-xs text-muted-foreground">활성 {activeByCycle(c)}개</span>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {c === 'DAILY'
-                ? '활성 미션 중 액션이 겹치지 않게 사용자마다 5개를 무작위로 뽑습니다.'
-                : '활성 미션 전부가 모든 사용자에게 같이 나갑니다.'}
-            </p>
-            <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">키 {CYCLE_KEY_HINT[c]}</p>
-          </Card>
-        ))}
+        {CYCLES.map((c) => {
+          const rows = missions.filter((m) => m.cycleCode === c);
+          const active = rows.filter((m) => m.isActive);
+          const sample = rows[0];
+          const current = sample?.currentRotationGroup ?? null;
+          const live = active.filter((m) => m.isPublished).length;
+          return (
+            <Card key={c} className="p-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-medium">{CYCLE_LABEL[c]}</span>
+                <span className="text-xs text-muted-foreground">활성 {active.length}개</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {c === 'DAILY'
+                  ? '활성 미션 중 액션이 겹치지 않게 사용자마다 5개를 무작위로 뽑습니다. 로테이션을 쓰지 않습니다.'
+                  : current === null
+                    ? '활성 미션이 없어 이번 주기에 나가는 미션이 없습니다.'
+                    : `이번 주기는 ${groupLabel(current)} 차례입니다. 그 그룹 전부가 모든 사용자에게 같이 나갑니다.`}
+              </p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                게시 중 {live}개
+                {sample && <span className="ml-1.5 font-mono">{periodLabel(sample.periodStart, sample.periodEnd)}</span>}
+              </p>
+            </Card>
+          );
+        })}
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => { setTab(t.key); page.setPage(0); }}
-            className={cn(
-              'rounded-md px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
-              tab === t.key ? 'bg-primary text-primary-foreground' : 'bg-surface text-muted-foreground hover:bg-surface-muted',
-            )}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => { setTab(t.key); page.setPage(0); }}
+              className={cn(
+                'rounded-md border px-2.5 py-1.5 text-xs sm:px-3 sm:text-sm',
+                tab === t.key ? 'border-primary-hover bg-primary text-primary-foreground' : 'border-border bg-surface text-muted-foreground hover:bg-surface-muted',
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <Select
+            className="h-8 w-auto text-xs sm:text-sm"
+            value={group === 'ALL' ? 'ALL' : String(group)}
+            onChange={(e) => { setGroup(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value)); page.setPage(0); }}
           >
-            {t.label}
-          </button>
-        ))}
+            <option value="ALL">그룹 전체</option>
+            {groups.map((g) => <option key={g} value={g}>{groupLabel(g)}</option>)}
+          </Select>
+
+          <Select
+            className="h-8 w-auto text-xs sm:text-sm"
+            value={published}
+            onChange={(e) => { setPublished(e.target.value as 'ALL' | 'Y' | 'N'); page.setPage(0); }}
+          >
+            <option value="ALL">게시 전체</option>
+            <option value="Y">게시 중</option>
+            <option value="N">미게시</option>
+          </Select>
+
+          {(group !== 'ALL' || published !== 'ALL' || tab !== 'ALL') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => { setTab('ALL'); setGroup('ALL'); setPublished('ALL'); page.setPage(0); }}
+            >
+              초기화
+            </Button>
+          )}
+
+          <span className="text-xs text-muted-foreground">{rows.length}건</span>
+        </div>
       </div>
 
       {setActive.error instanceof Error && (

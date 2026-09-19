@@ -71,3 +71,9 @@ export const CYCLES: MissionCycleCode[] = ['DAILY', 'WEEKLY', 'MONTHLY'];
 export const ACTIONS = Object.keys(ACTION_LABEL) as MissionActionCode[];
 export const GOAL_TYPES: MissionGoalTypeCode[] = ['COUNT', 'DISTINCT', 'ACCUMULATE'];
 export const REWARD_TYPES: MissionRewardTypeCode[] = ['EXP', 'PAY_POINT', 'STAR_POINT', 'INVENTORY'];
+
+/** 로테이션 그룹 라벨. 지금은 0·1 두 개지만 늘어나도 그대로 쓸 수 있게 번호로 찍는다 */
+export const groupLabel = (group: number) => `그룹 ${group + 1}`;
+
+/** "2026-09-21 ~ 2026-09-27" */
+export const periodLabel = (start: string, end: string) => `${start} ~ ${end}`;

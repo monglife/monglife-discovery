@@ -4,7 +4,8 @@ import type {
   BattleStats, CollectionMap, CollectionMong, EvolutionHistory, ExchangeStarPointProduct, FeedItem,
   Inventory, MapType, MatchDetail, MatchSummary, Member, MemberStats, Mong, MongStateCode, MongStats,
   MongSleepPatch, MongStatusCode, MongStatusPatch, MongType, Notice, Order, OrderDetail, QueuePlayer, RandomDraw,
-  Step, Task, TrainingType,
+  MongSchedulerTypeCode, Step, Task, TrainingType,
+  AccountMission, Mission, MissionActionCode, MissionCycleCode, MissionGoalTypeCode, MissionRewardTypeCode,
 } from './types';
 
 /**
@@ -28,7 +29,7 @@ export const noticesApi = {
 export const membersApi = {
   list: (params: PageParams & { accountId?: number; sort?: string }) => mongsApi.getPage<Member>(`${USER}/members`, params),
   get: (accountId: number) => mongsApi.get<Member>(`${USER}/members/${accountId}`),
-  adjustStarPoint: (accountId: number, body: { delta: number; reason?: string }) =>
+  adjustStarPoint: (accountId: number, body: { delta: number }) =>
     mongsApi.patch<Member>(`${USER}/members/${accountId}/star-point`, body),
   updateSlotCount: (accountId: number, slotCount: number) =>
     mongsApi.patch<Member>(`${USER}/members/${accountId}/slot-count`, { slotCount }),
@@ -57,13 +58,18 @@ export const mongDetailApi = {
     mongsApi.getPage<Mong>(`${CHARACTER}/mongs`, params),
   get: (mongId: number) => mongsApi.get<Mong>(`${CHARACTER}/mongs/${mongId}`),
   updateStatus: (mongId: number, body: MongStatusPatch) => mongsApi.patch<Mong>(`${CHARACTER}/mongs/${mongId}/status`, body),
-  updateState: (mongId: number, body: { stateCode: MongStateCode; reason?: string }) =>
+  updateState: (mongId: number, body: { stateCode: MongStateCode }) =>
     mongsApi.patch<Mong>(`${CHARACTER}/mongs/${mongId}/state`, body),
   updateSleep: (mongId: number, body: MongSleepPatch) => mongsApi.patch<Mong>(`${CHARACTER}/mongs/${mongId}/sleep`, body),
   remove: (mongId: number) => mongsApi.delete<Mong>(`${CHARACTER}/mongs/${mongId}`),
   tasks: (mongId: number) => mongsApi.get<Task[]>(`${CHARACTER}/mongs/${mongId}/tasks`),
   pauseTask: (taskId: number) => mongsApi.post<Task>(`${CHARACTER}/mongs/tasks/${taskId}/pause`),
   resumeTask: (taskId: number) => mongsApi.post<Task>(`${CHARACTER}/mongs/tasks/${taskId}/resume`),
+  /** 일시중지와 달리 행까지 지운다. 다시 걸려면 등록해야 한다 */
+  deleteTask: (taskId: number) => mongsApi.delete<Task>(`${CHARACTER}/mongs/tasks/${taskId}`),
+  /** 수면·기상 시각은 몽에 저장된 값을 쓰므로 보내지 않는다 */
+  createTask: (mongId: number, schedulerTypeCode: MongSchedulerTypeCode) =>
+    mongsApi.post<Task>(`${CHARACTER}/mongs/${mongId}/tasks`, { schedulerTypeCode }),
   inventories: (mongId: number, params: PageParams): Promise<Page<Inventory>> =>
     mongsApi.getPage<Inventory>(`${CHARACTER}/mongs/${mongId}/inventories`, params),
   grantInventory: (mongId: number, body: { inventoryCode: string; inventoryTypeCode: 'FOOD' | 'SNACK' }) =>
@@ -148,4 +154,50 @@ export const masterDeleteApi = {
     mongsApi.delete<{ kind: string; id: string }>(
       `${USER_KINDS.includes(kind) ? USER : CHARACTER}/master/${kind}/${id}`,
     ),
+};
+
+/**
+ * 미션 마스터 (character).
+ *
+ * 제목·설명·목표치·정렬·노출·리워드는 수정할 수 있다. 코드·주기·액션·목표 타입은 고정이다 -
+ * 바꾸면 이미 적재된 사용자 미션의 진행도가 다른 의미의 숫자가 된다.
+ */
+/** 수정에서는 코드·주기·액션·목표 타입을 받지 않는다 - 서버가 정체성으로 고정한다 */
+export type MissionUpdateBody = Pick<MissionCreateBody, 'title' | 'description' | 'goalCount' | 'isActive' | 'sortOrder' | 'rotationGroup' | 'rewards'>;
+
+export interface MissionCreateBody {
+  missionCode: string;
+  cycleCode: MissionCycleCode;
+  actionCode: MissionActionCode;
+  goalTypeCode: MissionGoalTypeCode;
+  title: string;
+  description?: string;
+  goalCount: number;
+  isActive?: boolean;
+  sortOrder?: number;
+  /** 로테이션 그룹. 주간·월간만 의미가 있다. 비우면 0 */
+  rotationGroup?: number;
+  rewards: {
+    rewardTypeCode: MissionRewardTypeCode;
+    /** INVENTORY 일 때만 채운다 */
+    rewardCode?: string;
+    inventoryTypeCode?: 'FOOD' | 'SNACK';
+    amount: number;
+  }[];
+}
+
+export const missionsApi = {
+  /** 비활성 미션도 포함한 전체 목록. 페이징이 없다 */
+  list: () => mongsApi.get<Mission[]>(`${CHARACTER}/missions`),
+  get: (missionId: number) => mongsApi.get<Mission>(`${CHARACTER}/missions/${missionId}`),
+  create: (body: MissionCreateBody) => mongsApi.post<Mission>(`${CHARACTER}/missions`, body),
+  /** 리워드는 통째 교체다. 진행 중인 사용자에게도 즉시 반영된다 */
+  update: (missionId: number, body: MissionUpdateBody) => mongsApi.put<Mission>(`${CHARACTER}/missions/${missionId}`, body),
+  /** 노출 여부만 바꾼다. 진행 중인 사용자가 있어도 막히지 않는다 - 다음 주기부터 빠질 뿐 */
+  setActive: (missionId: number, isActive: boolean) =>
+    mongsApi.patch<Mission>(`${CHARACTER}/missions/${missionId}/active`, { isActive }),
+  /** 사용자가 진행 중이면 400-102-004 로 거절된다 */
+  remove: (missionId: number) => mongsApi.delete<{ missionId: number }>(`${CHARACTER}/missions/${missionId}`),
+  /** 그 계정의 이번 주기(일간·주간·월간) 진행 현황 */
+  accountMissions: (accountId: number) => mongsApi.get<AccountMission[]>(`${CHARACTER}/missions/accounts/${accountId}`),
 };

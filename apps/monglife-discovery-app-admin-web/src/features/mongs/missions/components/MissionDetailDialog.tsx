@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Pencil } from 'lucide-react';
 import type { MissionUpdateBody } from '../../api';
 import type { Mission } from '../../types';
-import { ACTION_LABEL, CYCLE_LABEL, GOAL_TYPE_HINT, GOAL_TYPE_LABEL, REWARD_TYPE_LABEL } from '../labels';
+import { ACTION_LABEL, CYCLE_LABEL, GOAL_TYPE_HINT, GOAL_TYPE_LABEL, REWARD_TYPE_LABEL, groupLabel, periodLabel } from '../labels';
 import { RewardEditor } from './RewardEditor';
 import { rewardFilled, toDraft, toRewardBody, type RewardDraft } from '../reward';
 import { Badge, Button, Dialog, Field, Input, Switch } from '@/shared/ui';
@@ -38,6 +38,7 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
   const [goalCount, setGoalCount] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState('');
+  const [rotationGroup, setRotationGroup] = useState('0');
   const [rewards, setRewards] = useState<RewardDraft[]>([]);
 
   /**
@@ -55,6 +56,7 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
     setGoalCount(String(mission.goalCount));
     setIsActive(mission.isActive);
     setSortOrder(String(mission.sortOrder));
+    setRotationGroup(String(mission.rotationGroup));
     setRewards(mission.rewards.map(toDraft));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId]);
@@ -70,6 +72,7 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
       goalCount: Number(goalCount),
       isActive,
       ...(sortOrder.trim() !== '' && { sortOrder: Number(sortOrder) }),
+      rotationGroup: Number(rotationGroup) || 0,
       rewards: toRewardBody(rewards),
     });
 
@@ -93,7 +96,13 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
         ) : (
           <>
             <Button variant="secondary" onClick={onClose}>닫기</Button>
-            <Button onClick={() => setEditing(true)}><Pencil className="size-4" /> 수정</Button>
+            <Button
+              disabled={mission.isPublished}
+              title={mission.isPublished ? '게시 중에는 수정할 수 없습니다.' : undefined}
+              onClick={() => setEditing(true)}
+            >
+              <Pencil className="size-4" /> 수정
+            </Button>
           </>
         )
       }
@@ -106,6 +115,14 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
           <Fixed label="액션">{ACTION_LABEL[mission.actionCode]}</Fixed>
           <Fixed label="목표 타입">{GOAL_TYPE_LABEL[mission.goalTypeCode]}</Fixed>
         </div>
+        {mission.isPublished && (
+          <p className="rounded-md bg-warning/15 p-3 text-xs text-warning">
+            <b>게시 중</b>입니다 ({periodLabel(mission.periodStart, mission.periodEnd)}) — 지금 사용자 화면에 떠 있고 진행도가 쌓이는 중이라
+            수정·삭제가 막힙니다. 풀려면 아래 <b>노출</b>을 내리거나 다음 주기를 기다리세요.
+            {mission.cycleCode !== 'DAILY' && ` 이번 주기는 ${groupLabel(mission.rotationGroup)} 차례입니다.`}
+          </p>
+        )}
+
         <p className="text-xs text-muted-foreground">
           위 네 값은 고정입니다. 바꿔야 하면 새 미션을 등록하고 이 미션의 노출을 내리세요 —
           액션이나 목표 타입을 갈아 끼우면 이미 쌓인 진행도가 다른 의미의 숫자가 됩니다.
@@ -129,6 +146,14 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
               <Field label="정렬 순서" hint="작을수록 위">
                 <Input type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
               </Field>
+              {mission.cycleCode !== 'DAILY' && (
+                <Field
+                  label="로테이션 그룹"
+                  hint="같은 그룹끼리 한 주기에 함께 나갑니다. 0부터. 일간은 쓰지 않습니다"
+                >
+                  <Input type="number" min={0} value={rotationGroup} onChange={(e) => setRotationGroup(e.target.value)} />
+                </Field>
+              )}
             </div>
 
             <Switch checked={isActive} onCheckedChange={setIsActive} label="활성 (사용자에게 노출)" />
@@ -141,6 +166,12 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
               <Fixed label="정렬 순서">{mission.sortOrder}</Fixed>
               <Fixed label="노출">{mission.isActive ? <Badge tone="success">노출</Badge> : <Badge>숨김</Badge>}</Fixed>
               <Fixed label="설명">{mission.description ?? '-'}</Fixed>
+              <Fixed label="로테이션 그룹">
+                {mission.cycleCode === 'DAILY' ? '미사용' : groupLabel(mission.rotationGroup)}
+              </Fixed>
+              <Fixed label="이번 주기">
+                <span className="font-mono text-xs">{periodLabel(mission.periodStart, mission.periodEnd)}</span>
+              </Fixed>
             </div>
 
             <div className="rounded-md border border-border p-3">

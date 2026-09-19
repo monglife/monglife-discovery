@@ -74,7 +74,7 @@ export function BattlePage() {
         title="배틀"
         description="대기열은 30초마다 스스로 다시 읽는다. 지금 바로 보려면 새로고침."
         actions={
-          <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
+          <div className="ml-auto flex min-w-0 items-end justify-end gap-2">
             <span className="truncate text-xs text-muted-foreground">{formatDateTimeSec(dataUpdatedAt)} 기준</span>
             <Button variant="secondary" size="sm" className="shrink-0" loading={isFetching} onClick={refresh}>
               <RefreshCw className="size-4" />

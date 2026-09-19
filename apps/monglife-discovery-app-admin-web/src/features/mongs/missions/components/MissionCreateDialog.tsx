@@ -26,12 +26,13 @@ export function MissionCreateDialog({ open, loading, error, missions, onClose, o
   const [goalCount, setGoalCount] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState('');
+  const [rotationGroup, setRotationGroup] = useState('0');
   const [rewards, setRewards] = useState<RewardDraft[]>([emptyReward()]);
 
   useEffect(() => {
     if (!open) return;
     setMissionCode(''); setCycleCode('DAILY'); setActionCode('FEED_FOOD'); setGoalTypeCode('COUNT');
-    setTitle(''); setDescription(''); setGoalCount(''); setIsActive(true); setSortOrder('');
+    setTitle(''); setDescription(''); setGoalCount(''); setIsActive(true); setSortOrder(''); setRotationGroup('0');
     setRewards([emptyReward()]);
   }, [open]);
 
@@ -64,6 +65,7 @@ export function MissionCreateDialog({ open, loading, error, missions, onClose, o
       goalCount: Number(goalCount),
       isActive,
       ...(sortOrder.trim() !== '' && { sortOrder: Number(sortOrder) }),
+      rotationGroup: Number(rotationGroup) || 0,
       rewards: toRewardBody(rewards),
     });
 
@@ -131,6 +133,14 @@ export function MissionCreateDialog({ open, loading, error, missions, onClose, o
           <Field label="정렬 순서" hint="선택. 작을수록 위">
             <Input type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} />
           </Field>
+          {cycleCode !== 'DAILY' && (
+            <Field
+              label="로테이션 그룹"
+              hint="같은 그룹끼리 한 주기에 함께 나갑니다. 지금은 0·1 두 그룹이 번갈아 돕니다"
+            >
+              <Input type="number" min={0} value={rotationGroup} onChange={(e) => setRotationGroup(e.target.value)} />
+            </Field>
+          )}
         </div>
 
         <Switch checked={isActive} onCheckedChange={setIsActive} label="활성 (사용자에게 노출)" />
