@@ -17,9 +17,9 @@ export const notificationHandlers = [
       .filter((d) => (!accountId || d.accountId === Number(accountId)) && (!deviceName || d.deviceName === deviceName))
       .map((d) => {
         const a = db.accounts.find((x) => x.accountId === d.accountId);
-        return { ...d, email: a?.email, name: a?.name };
+        return { ...d, accountEmail: a?.email, accountName: a?.name };
       })
-      .filter((d) => !needle || includes(d.email, needle) || includes(d.name, needle) || includes(d.deviceName, needle));
+      .filter((d) => !needle || includes(d.accountEmail, needle) || includes(d.accountName, needle) || includes(d.deviceName, needle));
     return paged(items, url);
   }),
 

@@ -4,13 +4,14 @@ import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// 프로파일(local / dev / stg / prd)은 configs 서브모듈(프라이빗)의 <PROFILE>.env 에 있다.
+// 프로파일(dev / stg / prd)은 configs 서브모듈(프라이빗)의 <PROFILE>.env 에 있다.
 // 접속 주소를 퍼블릭 저장소에 두지 않기 위해서다. 규칙은 그쪽 README.md.
 //
-// Vite 의 --mode 를 쓰지 않는다. Vite 가 모드 이름 "local" 을 금지한다
-// (.env.*.local 접미사와 충돌한다며 기동을 거부한다). 그래서 PROFILE 환경변수로 파일을 고르고
-// 여기서 직접 읽어 process.env 에 올린다. VITE_ 접두사 키는 Vite 가 process.env 에서도 집어
-// import.meta.env 로 노출하므로, 클라이언트 코드는 여느 .env 와 똑같이 본다.
+// Vite 의 --mode 를 쓰지 않는다. PROFILE 환경변수로 파일을 고르고 여기서 직접 읽어
+// process.env 에 올린다. VITE_ 접두사 키는 Vite 가 process.env 에서도 집어 import.meta.env 로
+// 노출하므로, 클라이언트 코드는 여느 .env 와 똑같이 본다.
+// 파일 이름이 .env.<모드> 가 아니라 <프로파일>.env 라 Vite 가 자동으로 읽지 않는다 —
+// 프로파일 값이 섞일 일이 없다.
 const PROFILE_DIR = path.resolve(__dirname, '../../configs/properties/apps/monglife-discovery-app-admin-web');
 
 function loadProfile(profile: string) {
@@ -35,9 +36,9 @@ function loadProfile(profile: string) {
 
 // https://vite.dev/config/
 export default defineConfig(() => {
-  loadProfile(process.env.PROFILE ?? 'local');
-  const apiTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:8010';
-  const gatewayTarget = process.env.GATEWAY_PROXY_TARGET ?? 'http://localhost:8000';
+  loadProfile(process.env.PROFILE ?? 'dev');
+  const apiTarget = process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8010';
+  const gatewayTarget = process.env.GATEWAY_PROXY_TARGET ?? 'http://127.0.0.1:8000';
 
   return {
     plugins: [react(), tailwindcss()],
@@ -46,7 +47,8 @@ export default defineConfig(() => {
     },
     server: {
       port: 5173,
-      // local / dev 는 브라우저가 같은 출처 /api 로만 부르고 여기서 백엔드로 넘긴다 → CORS 없음.
+      // 세 프로파일 모두 브라우저는 같은 출처 /api 로만 부르고 여기서 백엔드로 넘긴다 → CORS 없음.
+      // 프로파일 차이는 아래 target 이 어디를 보느냐뿐이다(dev 127.0.0.1 / stg 100.0.0.10 / prd 100.0.0.20).
       // 게이트웨이 라우트(/api/character, /api/user)와 common-api(context-path /api)가 같은 접두사라
       // 구체적인 키를 먼저 둔다. Vite 는 선언 순서대로 첫 매치를 쓴다.
       proxy: {

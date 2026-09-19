@@ -11,38 +11,44 @@ MongLife 디스커버리 **관리자 웹**. Vite + React 18 + TypeScript + React
 ```bash
 nvm use            # .nvmrc → Node 24
 npm install
-npm run dev        # http://localhost:5173  (PROFILE=local → localhost:8010 실서버)
+npm run dev        # http://localhost:5173  (PROFILE=dev → 127.0.0.1:8010 실서버)
 ```
 
 | 스크립트 | |
 |---|---|
-| `npm run dev` | 개발 서버 |
+| `npm run dev` | 개발 서버 (dev 프로파일) |
 | `npm run build` | `tsc -b` + Vite 빌드 → `dist/` |
 | `npm run typecheck` / `npm run lint` / `npm run format` | |
 
 로그인은 **이메일 인증(6자리 코드)** 이다. 실서버는 `monglife_account.role = 'ADMIN'` 인 계정 이메일로 코드를 보낸다
-(local 프로파일의 common-api 는 `env.mail.enabled=false` 라 코드를 서버 로그 `[mail disabled]` 에 찍는다).
+(local/dev 프로파일의 common-api 는 `env.mail.enabled=false` 라 코드를 서버 로그 `[mail disabled]` 에 찍는다).
 목(`VITE_ENABLE_MSW=true`)에서는 `admin@monglife.cloud` 만 통과하고 코드는 브라우저 콘솔에 `[mock] email code …`, `000000` 은 항상 통과.
 
-### 프로파일 (local / dev / stg / prd)
+### 프로파일 (dev / stg / prd)
 
 접속 주소는 퍼블릭 저장소에 두지 않는다. 프로파일 파일은 **configs 서브모듈**의
 `properties/apps/monglife-discovery-app-admin-web/<PROFILE>.env` 에 있고, `vite.config.ts` 가
 `PROFILE` 환경변수로 골라 읽는다(규칙·키 설명은 그쪽 `README.md`).
 
-| 명령 | PROFILE | API |
-|---|---|---|
-| `npm run dev` | local | `/api` → 개발 서버 프록시 → `localhost:8010` (게이트웨이 `localhost:8000`) |
-| `npm run dev:dev` | dev | 위와 같음 |
-| `npm run build:stg` | stg | `http://100.0.0.10:8010/api` (절대 주소) |
-| `npm run build:prd` | prd | `http://100.0.0.20:8010/api` (절대 주소) |
+화면을 띄우는 건 언제나 로컬 개발 서버(`localhost:5173`)이고, **프로파일은 백엔드를 어디로 보낼지만 고른다.**
 
-- **local / dev 는 CORS 가 없다.** 브라우저는 같은 출처 `/api` 만 부르고, Vite 프록시가
-  `/api/character`·`/api/user` 는 게이트웨이로, 나머지는 common-api 로 넘긴다.
-- stg / prd 는 다른 출처라 common-api 의 `env.admin.allowed-origins` 에 관리자 웹 출처가 있어야 한다.
-  `admin.monglife.cloud` 처럼 인그레스 뒤에서 서비스할 땐 `VITE_API_BASE_URL=/api` 로 두면
-  인그레스가 같은 호스트 `/api/` 를 common-api 로 넘겨 CORS 가 없다(`configs/deploy/product/edge`).
-- `--mode` 를 쓰지 않는다. Vite 가 모드 이름 `local` 을 금지한다.
+| 명령 | PROFILE | 백엔드 |
+|---|---|---|
+| `npm run dev` | dev (기본) | 내 PC `127.0.0.1` (:8010 common-api, :8000 게이트웨이) |
+| `npm run dev:stg` | stg | stage `100.0.0.10` |
+| `npm run dev:prd` | prd | **운영** `100.0.0.20` |
+
+빌드는 `npm run build:stg` / `npm run build:prd`. 실제로 배포되는 건 prd 뿐이다
+(`configs/deploy/stage` 에 edge 가 없다).
+
+- **세 프로파일 모두 CORS 가 없다.** `VITE_API_BASE_URL` 이 셋 다 `/api` 라 브라우저는 같은 출처만
+  부르고, Vite 프록시가 `/api/character`·`/api/user` 는 게이트웨이로, 나머지는 common-api 로 넘긴다.
+  절대 주소로 두면 `localhost:5173` 이 `env.admin.allowed-origins` 에 없어 막힌다.
+- `build:prd` 산출물도 같은 `/api` 로 동작한다. `admin.monglife.cloud` 의 인그레스가 같은 호스트
+  `/api/` 를 common-api 로 넘기기 때문이다(`configs/deploy/product/edge`).
+- `100.0.0.x` 는 사설 IP 라 **VPN 안에서만 닿는다.**
+- ⚠ `dev:prd` 는 로컬 화면에서 실제 운영 데이터를 보고 고친다. 조회 외 동작은 신중히.
+- `--mode` 를 쓰지 않는다. `<프로파일>.env` 라 Vite 가 자동으로 읽지 않는다.
 - 서브모듈이 비어 있으면 기본값(`/api`, MSW 켜짐)으로 뜬다. 목 모드로 돌리려면 프로파일의
   `VITE_ENABLE_MSW=true`.
 
@@ -120,9 +126,61 @@ POST   /public/admin/auth/email/verify    { email, code } → { accountId, acces
 POST   /public/auth/logout
 ```
 
+### mongs(게임) 관리 API — 게이트웨이 경유
+
+`monglife-mongs` 저장소의 `/admin/**` 이다. common-api 가 아니라 **게이트웨이**(`VITE_GATEWAY_BASE_URL`)로
+부른다 — 토큰 검증·패스포트 발급이 거기에 있고, mongs 는 패스포트의 `role` 로 `/admin/**` 을 막는다.
+`src/shared/api/client.ts` 의 `mongsApi` 가 그 베이스를 쓴다. 응답 봉투·페이지 규약은 위와 같다.
+
+```
+# MONGS-USER
+GET    /user/admin/notices?page&size&query&sort(noticeId|createdAt)     숨김 포함
+GET    /user/admin/notices/:id
+POST   /user/admin/notices                { title, content }            작성자는 패스포트에서
+PUT    /user/admin/notices/:id            { title, content }
+PATCH  /user/admin/notices/:id/hide       { isHided }
+DELETE /user/admin/notices/:id
+GET    /user/admin/members?page&size&accountId&sort(accountId|starPoint|slotCount|createdAt)
+GET    /user/admin/members/:accountId
+PATCH  /user/admin/members/:accountId/star-point    { delta, reason? }  음수면 차감. MQTT 로 앱에 즉시 반영
+PATCH  /user/admin/members/:accountId/slot-count    { slotCount }
+GET    /user/admin/members/:accountId/collections/maps   /mongs
+POST   /user/admin/members/:accountId/collections/maps   /mongs   { code }   수동 지급
+GET    /user/admin/orders?page&size&accountId&productId&sort(orderId|createdAt|price)
+GET    /user/admin/orders/:orderId        { order, starPoint, inAppOrder }   구글 조회 실패 시 inAppOrder=null
+POST   /user/admin/orders/:orderId/reconsume    미소비 주문 재처리
+GET    /user/admin/steps/:accountId       DELETE 동일 경로 → 일일 환전 상한 초기화
+GET    /user/admin/stats                  { totalMembers, todayJoined, totalStarPoint, totalOrders, todayOrders, todayOrderAmount }
+GET    /user/admin/master/map-types       /exchange-star-point-products
+
+# MONGS-CHARACTER
+GET    /character/admin/mongs?page&size&accountId&stateCode&statusCode&query&sort(mongId|createdAt|exp|payPoint|accountId)
+GET    /character/admin/mongs/:mongId
+PATCH  /character/admin/mongs/:mongId/status   { weight?, strength?, satiety?, healthy?, fatigue?, exp?, payPoint?, poopCount?, randomDrawTicketCount?, reason? }
+PATCH  /character/admin/mongs/:mongId/state    { stateCode, reason? }   DEAD 복구 포함. 스케줄을 다시 건다
+DELETE /character/admin/mongs/:mongId          스케줄까지 정리
+GET    /character/admin/mongs/:mongId/tasks    POST /character/admin/mongs/tasks/:taskId/pause | /resume
+GET    /character/admin/mongs/:mongId/inventories?page&size
+POST   /character/admin/mongs/:mongId/inventories   { inventoryCode, inventoryTypeCode(FOOD|SNACK) }
+GET    /character/admin/accounts/:accountId/evolution-histories
+GET    /character/admin/stats             { totalMongs, todayCreated, countByState, countByStatus, scheduledTasks }
+GET    /character/admin/master/mong-types | /foods | /snacks | /training-types | /random-draws
+GET    /character/admin/battle/queue       DELETE /character/admin/battle/queue/:mongId   배팅 환불 포함
+GET    /character/admin/battle/matches?page&size&stateCode&accountId&sort(matchId|createdAt)
+GET    /character/admin/battle/matches/:matchId
+POST   /character/admin/battle/matches/:matchId/terminate   보상 없이 END 로 마감
+GET    /character/admin/battle/stats
+GET    /character/admin/ping · /user/admin/ping    게이트웨이→패스포트→ADMIN 권한 경로 확인용
+```
+
+마스터 데이터는 **읽기 전용**이다. 값 수정은 Caffeine 캐시(5분)·`SqlInitConfig` 시드와 엇갈려서 SQL 배포로 둔다.
+
+**MSW 목은 mongs 쪽에 없다.** 네 프로파일 모두 `VITE_ENABLE_MSW=false` 라 지금은 쓰이지 않는다 —
+필요해지면 `src/mocks/handlers/` 에 추가한다.
+
 ## 다음 단계 (이 모듈 밖)
 
-- **토큰 재발급.** 관리자 웹은 액세스 토큰 만료 시 `/public/auth/reissue` 를 부르지 않고 로그인으로 보낸다 (TODO).
+- ~~토큰 재발급~~ → `src/shared/api/client.ts` 가 401 을 받으면 `/public/auth/reissue` 로 한 번 재발급하고 재시도한다.
 - ~~CORS 또는 동일 출처~~ → common-api `SecurityConfig` 의 CORS(`env.admin.allowed-origins`) + local/dev 프록시로 정리.
 - ~~정적 호스팅~~ → `configs/deploy/product/edge` 의 `monglife-admin` 컨테이너 + 인그레스 `admin.monglife.cloud` 블록.
   `build:prd` 산출물(`dist/`)을 서버 `~/edge/build/monglife-admin/dist` 로 보내고 `./service.sh up`.

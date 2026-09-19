@@ -45,6 +45,16 @@ public class AdminAccountController {
         ).toResponse(AdminResponse.DISCOVERY_APP_ADMIN_ACCOUNT_LIST);
     }
 
+    /**
+     * 계정 ID 목록으로 이름표만 조회. mongs 관리 화면이 계정 ID 만 들고 있어서
+     * 목록에 이메일을 함께 보여 주려면 이 조회가 필요하다.
+     */
+    @EntryLoggingPoint
+    @GetMapping("/summaries")
+    public ResponseEntity<ResponseDto<List<AdminAccountSummaryResponseDto>>> summaries(@RequestParam List<Long> accountIds) {
+        return ResponseEntity.ok().body(AdminResponse.DISCOVERY_APP_ADMIN_ACCOUNT_SUMMARIES.toResponseDto(adminAccountService.getSummaries(accountIds)));
+    }
+
     @EntryLoggingPoint
     @GetMapping("/{accountId}")
     public ResponseEntity<ResponseDto<AdminAccountResponseDto>> get(@PathVariable Long accountId) {

@@ -54,8 +54,8 @@ public class AuthService {
      */
     @Transactional
     public void join(String email, String name, String socialAccountId, String role) {
-        // 구 경로(카카오 SDK). 플랫폼은 관리자 화면 표시용이다
-        join(email, name, socialAccountId, role, AccountPlatform.KAKAO);
+        // 구 경로. 플랫폼을 알 수 없으므로 NULL 로 둔다 (DB 기본값에 맡긴다)
+        join(email, name, socialAccountId, role, null);
     }
 
     private void join(String email, String name, String socialAccountId, String role, AccountPlatform platform) {
@@ -65,7 +65,7 @@ public class AuthService {
                 .name(name)
                 .socialAccountId(socialAccountId)
                 .role(role)
-                .platform(platform.name())
+                .platform(platform == null ? null : platform.name())
                 .build();
 
         accountService.createAccount(accountVo);
@@ -96,9 +96,6 @@ public class AuthService {
         if (accountVo.getSocialAccountId() == null || accountVo.getSocialAccountId().isBlank()) {
             accountService.updateSocialAccountId(accountVo.getEmail(), socialAccountId);
         }
-
-        // 플랫폼 백필 (platform 컬럼 도입 전 계정)
-        accountService.fillPlatformIfEmpty(accountVo.getAccountId(), AccountPlatform.KAKAO.name());
 
         return issueLogin(accountVo.getAccountId(), deviceId, appPackageName, deviceName, buildVersion);
     }

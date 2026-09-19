@@ -12,6 +12,7 @@ public enum AdminResponse implements Response {
     DISCOVERY_APP_ADMIN_ACCOUNT_LIST(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-000", "계정 목록 조회에 성공하였습니다."),
     DISCOVERY_APP_ADMIN_ACCOUNT_GET(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-001", "계정 조회에 성공하였습니다."),
     DISCOVERY_APP_ADMIN_ACCOUNT_UPDATE(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-002", "계정 수정에 성공하였습니다."),
+    DISCOVERY_APP_ADMIN_ACCOUNT_SUMMARIES(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-003", "계정 요약 조회에 성공하였습니다."),
     DISCOVERY_APP_ADMIN_DEVICE_LIST(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-010", "기기 목록 조회에 성공하였습니다."),
     DISCOVERY_APP_ADMIN_DEVICE_CONNECT(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-011", "기기 연결에 성공하였습니다."),
     DISCOVERY_APP_ADMIN_DEVICE_DISCONNECT(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-012", "기기 연결 해제에 성공하였습니다."),
