@@ -27,6 +27,14 @@ import java.time.LocalDateTime;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AdminMaintenanceSaveRequestDto {
 
+    /**
+     * 점검 대상 앱. 비우면 전역이라 모든 앱이 막힌다.
+     *
+     * <p>@NotBlank 를 걸지 않는다 - 비우는 것이 "전체" 라는 뜻이라 유효한 입력이다.
+     */
+    @Size(max = 255)
+    private String appPackageName;
+
     @NotBlank @Size(max = 200)
     private String message;
 
@@ -42,7 +50,8 @@ public class AdminMaintenanceSaveRequestDto {
     private Boolean enabled;
 
     @Builder
-    public AdminMaintenanceSaveRequestDto(String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled) {
+    public AdminMaintenanceSaveRequestDto(String appPackageName, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled) {
+        this.appPackageName = appPackageName;
         this.message = message;
         this.startAt = startAt;
         this.endAt = endAt;

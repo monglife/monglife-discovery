@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService 앱 버전 검증 (+ 서버 점검)")
@@ -60,10 +61,21 @@ class AuthServiceVerifyBuildVersionTest {
     }
 
     @Test
+    @DisplayName("점검 조회에 진입 앱 패키지를 그대로 넘긴다 - 다른 앱의 점검에 막히지 않는다")
+    void passesAppPackageNameToMaintenanceLookup() {
+        givenAppVersion(false);
+        given(maintenanceService.getActiveMaintenance(APP_PACKAGE_NAME)).willReturn(Optional.empty());
+
+        verify();
+
+        then(maintenanceService).should().getActiveMaintenance(APP_PACKAGE_NAME);
+    }
+
+    @Test
     @DisplayName("점검 중이 아니면 underMaintenance 는 false 이고 점검 정보는 비어 있다")
     void noMaintenance() {
         givenAppVersion(false);
-        given(maintenanceService.getActiveMaintenance()).willReturn(Optional.empty());
+        given(maintenanceService.getActiveMaintenance(APP_PACKAGE_NAME)).willReturn(Optional.empty());
 
         VerifyBuildVersionDto dto = verify();
 
@@ -78,7 +90,7 @@ class AuthServiceVerifyBuildVersionTest {
     @DisplayName("점검 중이면 문구와 시작·종료 시각이 함께 나간다")
     void underMaintenance() {
         givenAppVersion(false);
-        given(maintenanceService.getActiveMaintenance()).willReturn(Optional.of(MaintenanceVo.builder()
+        given(maintenanceService.getActiveMaintenance(APP_PACKAGE_NAME)).willReturn(Optional.of(MaintenanceVo.builder()
                 .maintenanceId(1L)
                 .message("서버 점검 중입니다.")
                 .startAt(START_AT)
@@ -99,7 +111,7 @@ class AuthServiceVerifyBuildVersionTest {
     @DisplayName("종료 미정인 점검이면 endAt 만 null 이다")
     void underMaintenance_openEnded() {
         givenAppVersion(false);
-        given(maintenanceService.getActiveMaintenance()).willReturn(Optional.of(MaintenanceVo.builder()
+        given(maintenanceService.getActiveMaintenance(APP_PACKAGE_NAME)).willReturn(Optional.of(MaintenanceVo.builder()
                 .maintenanceId(1L)
                 .message("긴급 점검 중입니다.")
                 .startAt(START_AT)
@@ -119,7 +131,7 @@ class AuthServiceVerifyBuildVersionTest {
     @DisplayName("강제 업데이트와 점검은 함께 나갈 수 있다 (앱이 업데이트를 먼저 본다)")
     void mustUpdateAndMaintenance() {
         givenAppVersion(true);
-        given(maintenanceService.getActiveMaintenance()).willReturn(Optional.of(MaintenanceVo.builder()
+        given(maintenanceService.getActiveMaintenance(APP_PACKAGE_NAME)).willReturn(Optional.of(MaintenanceVo.builder()
                 .maintenanceId(1L)
                 .message("서버 점검 중입니다.")
                 .startAt(START_AT)

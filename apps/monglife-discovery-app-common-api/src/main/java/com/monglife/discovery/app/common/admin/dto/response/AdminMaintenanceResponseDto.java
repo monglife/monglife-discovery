@@ -11,6 +11,9 @@ public class AdminMaintenanceResponseDto {
 
     private final Long maintenanceId;
 
+    /** 점검 대상 앱. null 이면 전역이라 모든 앱이 막힌다 */
+    private final String appPackageName;
+
     private final String message;
 
     // 기본 ObjectMapper 가 날짜를 배열로 내보내므로 ISO 문자열로 고정한다
@@ -35,8 +38,9 @@ public class AdminMaintenanceResponseDto {
     private final LocalDateTime updatedAt;
 
     @Builder
-    public AdminMaintenanceResponseDto(Long maintenanceId, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled, Boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public AdminMaintenanceResponseDto(Long maintenanceId, String appPackageName, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled, Boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.maintenanceId = maintenanceId;
+        this.appPackageName = appPackageName;
         this.message = message;
         this.startAt = startAt;
         this.endAt = endAt;

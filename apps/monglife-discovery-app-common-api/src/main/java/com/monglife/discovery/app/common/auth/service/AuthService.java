@@ -405,7 +405,9 @@ public class AuthService {
 
         AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
 
-        Optional<MaintenanceVo> maintenanceVo = maintenanceService.getActiveMaintenance();
+        // 진입을 시도하는 앱을 넘긴다. 그 앱을 대상으로 하거나 전역인 점검만 걸린다 -
+        // 웨어 점검이 iOS 를 막지 않는다.
+        Optional<MaintenanceVo> maintenanceVo = maintenanceService.getActiveMaintenance(appPackageName);
 
         return VerifyBuildVersionDto.builder()
                 .appPackageName(appVersionVo.getAppPackageName())

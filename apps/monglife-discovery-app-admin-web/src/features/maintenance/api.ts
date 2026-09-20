@@ -3,8 +3,8 @@ import type { Maintenance, SaveMaintenance } from './types';
 
 export const maintenanceApi = {
   list: () => api.get<Maintenance[]>('/admin/maintenances'),
-  /** 지금 점검 중인 일정. 점검이 아니면 null */
-  current: () => api.get<Maintenance | null>('/admin/maintenances/current'),
+  /** 지금 진행 중인 일정 전부. 앱을 가리지 않는다 — 웨어만 내린 점검도 들어온다 */
+  current: () => api.get<Maintenance[]>('/admin/maintenances/current'),
   create: (body: SaveMaintenance) => api.post<Maintenance>('/admin/maintenances', body),
   update: (maintenanceId: number, body: SaveMaintenance) => api.put<Maintenance>(`/admin/maintenances/${maintenanceId}`, body),
   setEnabled: (maintenanceId: number, enabled: boolean) => api.patch<Maintenance>(`/admin/maintenances/${maintenanceId}`, { enabled }),

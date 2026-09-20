@@ -30,7 +30,8 @@ export const maintenanceHandlers = [
 
   http.get(`${BASE}/admin/maintenances/current`, async () => {
     await latency();
-    return ok(db.maintenances.map(withActive).find((m) => m.active) ?? null);
+    // 서버와 같이 앱을 가리지 않고 진행 중인 것을 전부 준다
+    return ok(db.maintenances.map(withActive).filter((m) => m.active));
   }),
 
   http.post(`${BASE}/admin/maintenances`, async ({ request }) => {

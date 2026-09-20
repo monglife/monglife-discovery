@@ -1,14 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { Maintenance, SaveMaintenance } from '../types';
 import { nowForInput, toInputDateTime, toServerDateTime } from '../datetime';
-import { Button, Dialog, Field, Input, Switch, Textarea } from '@/shared/ui';
+import { ALL_APPS_LABEL } from '../target';
+import { useAppVersions } from '@/features/app-versions/queries';
+import { Button, Dialog, Field, Input, Select, Switch, Textarea } from '@/shared/ui';
 import { ErrorBanner } from '@/shared/components/ErrorBanner';
 
 const schema = z
   .object({
+    appPackageName: z.string(),
     message: z.string().trim().min(1, '안내 문구를 입력하세요.').max(200, '200자까지 쓸 수 있습니다.'),
     startAt: z.string().min(1, '시작 시각을 입력하세요.'),
     endAt: z.string(),
@@ -35,9 +38,20 @@ interface MaintenanceFormDialogProps {
 export function MaintenanceFormDialog({ open, maintenance, pending, error, onSubmit, onClose }: MaintenanceFormDialogProps) {
   const editing = !!maintenance;
 
+  // 고를 수 있는 앱은 앱 버전에 등록된 것들이다. 진입 게이트가 getAppVersion 을 먼저 거치므로
+  // 거기 없는 패키지는 애초에 점검에 걸릴 일이 없다.
+  const { data: appVersions } = useAppVersions();
+  const appPackageNames = useMemo(() => {
+    const names = new Set((appVersions ?? []).map((v) => v.appPackageName));
+    // 수정 중인 일정이 가리키는 앱이 목록에서 빠졌더라도 남긴다. 빼면 select 가 값을 못 찾아
+    // 조용히 '전체' 로 떨어지고, 한 앱만 막던 점검이 저장하는 순간 모든 앱을 막는다.
+    if (maintenance?.appPackageName) names.add(maintenance.appPackageName);
+    return [...names].sort();
+  }, [appVersions, maintenance]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { message: '', startAt: nowForInput(), endAt: '', enabled: true },
+    defaultValues: { appPackageName: '', message: '', startAt: nowForInput(), endAt: '', enabled: true },
   });
 
   // 같은 다이얼로그를 등록·수정에 돌려 쓰므로 열 때마다 값을 다시 채운다
@@ -46,12 +60,13 @@ export function MaintenanceFormDialog({ open, maintenance, pending, error, onSub
     form.reset(
       maintenance
         ? {
+            appPackageName: maintenance.appPackageName ?? '',
             message: maintenance.message,
             startAt: toInputDateTime(maintenance.startAt),
             endAt: toInputDateTime(maintenance.endAt),
             enabled: maintenance.enabled,
           }
-        : { message: '', startAt: nowForInput(), endAt: '', enabled: true },
+        : { appPackageName: '', message: '', startAt: nowForInput(), endAt: '', enabled: true },
     );
     // form 은 매 렌더 새 객체가 아니지만 의존성에 넣으면 reset 이 반복된다
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,6 +74,8 @@ export function MaintenanceFormDialog({ open, maintenance, pending, error, onSub
 
   const submit = form.handleSubmit((values) =>
     onSubmit({
+      // 빈 값이 '전체' 다. null 로 보내 서버의 전역과 뜻을 맞춘다.
+      appPackageName: values.appPackageName || null,
       message: values.message.trim(),
       startAt: toServerDateTime(values.startAt),
       endAt: values.endAt ? toServerDateTime(values.endAt) : null,
@@ -82,6 +99,15 @@ export function MaintenanceFormDialog({ open, maintenance, pending, error, onSub
       }
     >
       <form id="maintenance-form" onSubmit={submit} className="space-y-4">
+        <Field
+          label="대상 앱"
+          hint="비우면 전체 — 모든 앱이 막힙니다. 한 앱만 내릴 때는 그 앱을 고르세요."
+        >
+          <Select {...form.register('appPackageName')}>
+            <option value="">{ALL_APPS_LABEL}</option>
+            {appPackageNames.map((p) => <option key={p} value={p}>{p}</option>)}
+          </Select>
+        </Field>
         <Field label="안내 문구" error={form.formState.errors.message?.message} hint="앱 점검 화면에 그대로 보입니다.">
           <Textarea rows={2} placeholder="서버 점검 중입니다. 잠시 후 다시 이용해 주세요." {...form.register('message')} />
         </Field>

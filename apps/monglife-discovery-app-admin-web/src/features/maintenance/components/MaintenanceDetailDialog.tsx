@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Maintenance } from '../types';
 import { PHASE_LABEL, PHASE_TONE, maintenancePhase } from '../phase';
+import { targetAppLabel } from '../target';
 import { Badge, Button, Dialog, Switch } from '@/shared/ui';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { formatDateTime } from '@/shared/lib/format';
@@ -39,6 +40,7 @@ export function MaintenanceDetailDialog({ maintenance, onClose, onEdit, onToggle
           <dl className="space-y-3 text-sm">
             <Row label="ID">{maintenance.maintenanceId}</Row>
             <Row label="상태"><Badge tone={PHASE_TONE[phase]}>{PHASE_LABEL[phase]}</Badge></Row>
+            <Row label="대상 앱">{targetAppLabel(maintenance)}</Row>
             <Row label="시작">{formatDateTime(maintenance.startAt)}</Row>
             <Row label="종료">{maintenance.endAt ? formatDateTime(maintenance.endAt) : '미정'}</Row>
             <Row label="사용">

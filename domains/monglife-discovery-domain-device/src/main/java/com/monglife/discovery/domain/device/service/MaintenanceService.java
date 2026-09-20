@@ -16,7 +16,7 @@ import java.util.Optional;
 /**
  * 서버 점검 일정.
  *
- * <p>공개 경로({@code /public/auth/verify/version})는 {@link #getActiveMaintenance()} 하나만 쓴다.
+ * <p>공개 경로({@code /public/auth/verify/version})는 {@link #getActiveMaintenance(String)} 하나만 쓴다.
  * 나머지는 관리자 화면용이다.
  */
 @Service
@@ -28,6 +28,7 @@ public class MaintenanceService {
     static MaintenanceVo toVo(MaintenanceEntity e, LocalDateTime now) {
         return MaintenanceVo.builder()
                 .maintenanceId(e.getMaintenanceId())
+                .appPackageName(e.getAppPackageName())
                 .message(e.getMessage())
                 .startAt(e.getStartAt())
                 .endAt(e.getEndAt())
@@ -42,17 +43,31 @@ public class MaintenanceService {
      * 지금 진행 중인 점검 일정.
      *
      * <p>겹치게 등록된 일정이 있으면 먼저 시작한 것을 쓴다.
+     *
+     * @param appPackageName 진입을 시도하는 앱. 이 앱을 대상으로 하거나 전역인 일정만 본다
      * @return 점검 중이 아니면 빈 Optional
      */
     @Transactional(readOnly = true)
-    public Optional<MaintenanceVo> getActiveMaintenance() {
+    public Optional<MaintenanceVo> getActiveMaintenance(String appPackageName) {
 
         LocalDateTime now = LocalDateTime.now();
 
-        return maintenanceRepository.findActive(now).stream().findFirst().map(e -> toVo(e, now));
+        return maintenanceRepository.findActive(now, appPackageName).stream().findFirst().map(e -> toVo(e, now));
     }
 
     // ----- 관리자 -----
+
+    /**
+     * 앱을 가리지 않고, 지금 진행 중인 모든 점검 일정.
+     *
+     * <p>관리자는 "지금 뭐가 걸려 있나" 를 봐야 한다. 진입 게이트와 달리 특정 앱 관점이 아니므로
+     * 웨어만 내린 점검도 그대로 보인다.
+     */
+    @Transactional(readOnly = true)
+    public List<MaintenanceVo> getActiveMaintenances() {
+        LocalDateTime now = LocalDateTime.now();
+        return maintenanceRepository.findActiveAll(now).stream().map(e -> toVo(e, now)).toList();
+    }
 
     @Transactional(readOnly = true)
     public List<MaintenanceVo> getMaintenances() {
@@ -61,11 +76,12 @@ public class MaintenanceService {
     }
 
     @Transactional
-    public MaintenanceVo createMaintenance(String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled) {
+    public MaintenanceVo createMaintenance(String appPackageName, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled) {
 
         validatePeriod(startAt, endAt);
 
         return toVo(maintenanceRepository.save(MaintenanceEntity.builder()
+                .appPackageName(appPackageName)
                 .message(message)
                 .startAt(startAt)
                 .endAt(endAt)
@@ -74,12 +90,12 @@ public class MaintenanceService {
     }
 
     @Transactional
-    public MaintenanceVo updateMaintenance(Long maintenanceId, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled) {
+    public MaintenanceVo updateMaintenance(Long maintenanceId, String appPackageName, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled) {
 
         validatePeriod(startAt, endAt);
 
         MaintenanceEntity e = find(maintenanceId);
-        e.update(message, startAt, endAt, enabled);
+        e.update(appPackageName, message, startAt, endAt, enabled);
 
         return toVo(e, LocalDateTime.now());
     }
