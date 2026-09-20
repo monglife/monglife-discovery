@@ -9,7 +9,10 @@ import {
 import type { Mission, MissionCycleCode, MissionReward } from '../../types';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { useClientPage } from '@/shared/components/ClientPagination';
-import { Badge, Button, Card, Dialog, PageHeader, Pagination, Select, Switch } from '@/shared/ui';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
+import { ErrorBanner } from '@/shared/components/ErrorBanner';
+import { errorMessage } from '@/shared/lib/error';
+import { Badge, Button, Card, PageHeader, Pagination, Select, Switch } from '@/shared/ui';
 import { cn } from '@/shared/lib/cn';
 import { formatNumber } from '@/shared/lib/format';
 
@@ -141,8 +144,7 @@ export function MissionListPage() {
         <span onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            variant="ghost"
-            className="text-danger hover:bg-danger-soft"
+            variant="danger-ghost"
             disabled={r.isPublished}
             title={r.isPublished ? '게시 중에는 삭제할 수 없습니다. 노출을 내리거나 다음 주기를 기다리세요.' : undefined}
             onClick={() => { remove.reset(); setRemoving(r); }}
@@ -247,9 +249,7 @@ export function MissionListPage() {
         </div>
       </div>
 
-      {setActive.error instanceof Error && (
-        <p className="mb-2 rounded-md bg-danger-soft p-3 text-xs text-danger">{setActive.error.message}</p>
-      )}
+      <ErrorBanner message={errorMessage(setActive.error)} className="mb-2" />
 
       <Card>
         <DataTable
@@ -279,36 +279,25 @@ export function MissionListPage() {
         onSubmit={(body) => create.mutate(body, { onSuccess: () => setCreating(false) })}
       />
 
-      {/*
-        ConfirmDialog 를 쓰지 않는다 - 삭제는 "사용자가 진행 중이면 거절"이 흔한 결과라
-        실패 사유를 모달 안에서 보여 줘야 한다.
-      */}
-      <Dialog
+      {/* 삭제는 "사용자가 진행 중이면 거절"이 흔한 결과라 실패 사유를 모달 안에서 보여 준다. */}
+      <ConfirmDialog
         open={removing !== null}
-        onClose={() => setRemoving(null)}
         title="미션을 삭제합니다"
         description={
           removing
             ? `${removing.missionCode} ${removing.title} — 사용자가 이미 진행 중인 미션은 삭제되지 않습니다. 그 경우 노출 스위치를 내리면 다음 주기부터 빠집니다.`
             : undefined
         }
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setRemoving(null)} disabled={remove.isPending}>취소</Button>
-            <Button
-              variant="danger"
-              loading={remove.isPending}
-              onClick={() => removing && remove.mutate(removing.missionId, { onSuccess: () => setRemoving(null) })}
-            >
-              삭제
-            </Button>
-          </>
-        }
-      >
-        {remove.error instanceof Error && (
-          <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{remove.error.message}</p>
-        )}
-      </Dialog>
+        confirmLabel="삭제"
+        danger
+        loading={remove.isPending}
+        error={errorMessage(remove.error)}
+        onClose={() => {
+          setRemoving(null);
+          remove.reset();
+        }}
+        onConfirm={() => removing && remove.mutate(removing.missionId, { onSuccess: () => setRemoving(null) })}
+      />
     </>
   );
 }

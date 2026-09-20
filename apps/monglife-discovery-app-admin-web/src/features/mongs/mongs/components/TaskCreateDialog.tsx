@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { MongSchedulerTypeCode, Task } from '../../types';
 import { SCHEDULER_LABEL, SCHEDULER_OPTIONS } from '../taskLabels';
 import { Button, Dialog, Field, Select } from '@/shared/ui';
+import { ErrorBanner } from '@/shared/components/ErrorBanner';
 
 interface Props {
   open: boolean;
@@ -55,7 +56,7 @@ export function TaskCreateDialog({ open, existing, loading, error, onClose, onSu
           </p>
         )}
 
-        {error && <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{error}</p>}
+        <ErrorBanner message={error} />
       </div>
     </Dialog>
   );

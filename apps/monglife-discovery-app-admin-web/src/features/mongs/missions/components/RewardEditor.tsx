@@ -59,8 +59,7 @@ export function RewardEditor({ rewards, disabled, onChange }: Props) {
 
           <Button
             size="sm"
-            variant="ghost"
-            className="text-danger hover:bg-danger-soft"
+            variant="danger-ghost"
             disabled={disabled || rewards.length === 1}
             onClick={() => onChange(rewards.filter((_, idx) => idx !== i))}
           >

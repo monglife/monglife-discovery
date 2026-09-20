@@ -103,8 +103,7 @@ export function MasterDataPage() {
       <span onClick={(e) => e.stopPropagation()}>
         <Button
           size="sm"
-          variant="ghost"
-          className="text-danger hover:bg-danger-soft"
+          variant="danger-ghost"
           onClick={() => setRemoving({ id: id(row), label: label(row) })}
         >
           삭제

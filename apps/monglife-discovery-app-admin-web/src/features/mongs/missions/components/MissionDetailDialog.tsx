@@ -7,6 +7,7 @@ import { RewardEditor } from './RewardEditor';
 import { rewardFilled, toDraft, toRewardBody, type RewardDraft } from '../reward';
 import { Badge, Button, Dialog, Field, Input, Switch } from '@/shared/ui';
 import { formatNumber } from '@/shared/lib/format';
+import { ErrorBanner } from '@/shared/components/ErrorBanner';
 
 /** 고정 항목 한 줄 */
 function Fixed({ label, children }: { label: string; children: ReactNode }) {
@@ -189,7 +190,7 @@ export function MissionDetailDialog({ mission, loading, error, onClose, onSubmit
           </>
         )}
 
-        {error && <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{error}</p>}
+        <ErrorBanner message={error} />
       </div>
     </Dialog>
   );

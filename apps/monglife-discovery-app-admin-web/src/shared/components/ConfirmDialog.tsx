@@ -1,4 +1,5 @@
 import { Button, Dialog } from '@/shared/ui';
+import { ErrorBanner } from '@/shared/components/ErrorBanner';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -46,7 +47,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      {error && <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{error}</p>}
+      <ErrorBanner message={error} />
     </Dialog>
   );
 }

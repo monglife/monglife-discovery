@@ -88,7 +88,7 @@ export function MongDetailPage() {
               재시작
             </Button>
           )}
-          <Button size="sm" variant="ghost" className="text-danger hover:bg-danger-soft" onClick={() => setRemovingTask(t)}>
+          <Button size="sm" variant="danger-ghost" onClick={() => setRemovingTask(t)}>
             삭제
           </Button>
         </span>

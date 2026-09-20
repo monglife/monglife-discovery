@@ -10,6 +10,7 @@ import { FilterSelect } from '@/shared/components/FilterSelect';
 import { StatCard } from '@/shared/components/StatCard';
 import { Badge, Button, Card, CardHeader, CardTitle, PageHeader, Pagination } from '@/shared/ui';
 import { formatDateTime, formatDateTimeSec, formatNumber } from '@/shared/lib/format';
+import { errorMessage } from '@/shared/lib/error';
 
 const SIZE = 10;
 const STATE_CODES = ['ENTERING', 'PROCESS', 'END', 'CANCELED'];
@@ -132,7 +133,7 @@ export function BattlePage() {
         description="배팅했던 페이 포인트는 되돌려 줍니다."
         confirmLabel="강제 이탈"
         loading={removeFromQueue.isPending}
-        error={removeFromQueue.error instanceof Error ? removeFromQueue.error.message : undefined}
+        error={errorMessage(removeFromQueue.error)}
         onClose={() => {
           setDequeue(null);
           removeFromQueue.reset();
@@ -149,7 +150,7 @@ export function BattlePage() {
         loading={terminate.isPending}
         // 기한 스위퍼가 먼저 마감한 매치를 누르면 409 가 온다. 목록은 30초마다 다시 읽고
         // 기한도 30초라 늘 있는 경합이다. 묻지 말고 이유를 보여 준다.
-        error={terminate.error instanceof Error ? terminate.error.message : undefined}
+        error={errorMessage(terminate.error)}
         onClose={() => {
           setTerminating(null);
           terminate.reset();

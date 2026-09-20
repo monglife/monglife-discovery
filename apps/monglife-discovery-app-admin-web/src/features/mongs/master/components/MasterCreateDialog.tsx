@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMaster } from '../../queries';
 import type { MasterCreateBody, MasterKind } from '../../api';
 import { Button, Dialog, Field, Input, Select } from '@/shared/ui';
+import { ErrorBanner } from '@/shared/components/ErrorBanner';
 
 /** 종류마다 입력 폼이 다르다. 종류 → 라벨·필드 정의를 한곳에 모아 둔다 */
 interface FieldDef {
@@ -180,7 +181,7 @@ export function MasterCreateDialog({ open, loading, error, onClose, onSubmit }: 
           </div>
         )}
 
-        {error && <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{error}</p>}
+        <ErrorBanner message={error} />
       </div>
     </Dialog>
   );

@@ -5,6 +5,7 @@ import { ACTION_LABEL, ACTIONS, CYCLE_LABEL, CYCLES, GOAL_TYPE_HINT, GOAL_TYPE_L
 import { RewardEditor } from './RewardEditor';
 import { emptyReward, rewardFilled, toRewardBody, type RewardDraft } from '../reward';
 import { Button, Dialog, Field, Input, Select, Switch } from '@/shared/ui';
+import { ErrorBanner } from '@/shared/components/ErrorBanner';
 
 interface Props {
   open: boolean;
@@ -147,7 +148,7 @@ export function MissionCreateDialog({ open, loading, error, missions, onClose, o
 
         <RewardEditor rewards={rewards} onChange={setRewards} />
 
-        {error && <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{error}</p>}
+        <ErrorBanner message={error} />
       </div>
     </Dialog>
   );

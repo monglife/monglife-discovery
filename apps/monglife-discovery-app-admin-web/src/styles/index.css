@@ -24,6 +24,7 @@
   --color-danger: var(--color-danger);
   --color-danger-hover: var(--color-danger-hover);
   --color-danger-soft: var(--color-danger-soft);
+  --color-danger-foreground: var(--color-danger-foreground);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 4px);
   --shadow-card: var(--shadow-card);

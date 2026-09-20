@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/shared/lib/cn';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-ghost';
 type Size = 'sm' | 'md';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,7 +19,11 @@ const variants: Record<Variant, string> = {
   primary: 'bg-primary text-primary-foreground border border-primary-hover hover:bg-primary-hover shadow-sm',
   secondary: 'bg-surface text-foreground border border-border hover:bg-surface-muted',
   ghost: 'text-foreground border border-border hover:bg-surface-muted',
-  danger: 'bg-danger text-white border border-danger-hover hover:bg-danger-hover',
+  // text-white 가 아니라 토큰이다. 다크에서 danger 가 밝아져 순백과 대비가 모자란다.
+  danger: 'bg-danger text-danger-foreground border border-danger-hover hover:bg-danger-hover',
+  // 목록 행의 삭제처럼, 위험하지만 화면의 주인공은 아닌 자리. 없던 시절에는 호출부마다
+  // ghost 에 className 으로 덧칠했고 그게 다섯 군데로 번졌다.
+  'danger-ghost': 'text-danger border border-border hover:bg-danger-soft',
 };
 
 const sizes: Record<Size, string> = {
