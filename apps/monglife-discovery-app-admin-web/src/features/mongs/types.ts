@@ -140,16 +140,20 @@ export interface MongStatusPatch {
   randomDrawTicketCount?: number | null;
 }
 
+/**
+ * 서버 MongSchedulerType 의 **코드**. enum 이름(DECREASE_STATUS)이 아니라 하이픈 코드다.
+ * 목록 응답이 이 값을 주고 등록 요청도 이 값을 받는다.
+ */
 export type MongSchedulerTypeCode =
-  | 'EGG_EVOLUTION' | 'SLEEP' | 'WAKEUP'
-  | 'INCREASE_STATUS' | 'DECREASE_STATUS' | 'INCREASE_POOP' | 'DEAD';
+  | 'EGG-EVOLUTION' | 'SLEEP' | 'WAKEUP'
+  | 'INCREASE-STATUS' | 'DECREASE-STATUS' | 'INCREASE-POOP' | 'DEAD';
 
 /** mongs_task. 몽마다 도는 스케줄 */
 export interface Task {
   taskId: number;
   mongId: number;
   accountId: number;
-  schedulerTypeCode: string;
+  schedulerTypeCode: MongSchedulerTypeCode;
   stateCode: 'PROCESSING' | 'PAUSE' | 'APP_STOP_PROCESSING' | 'APP_STOP_PAUSE';
   typeCode: string;
   expirationSeconds: number | null;
@@ -235,7 +239,8 @@ export interface RandomDraw {
 }
 
 /* ── character: 배틀 ───────────────────────────────────────────────────── */
-export type MatchStateCode = 'ENTERING' | 'PROCESS' | 'END';
+/** CANCELED 는 입장 기한을 넘겨 취소된 매치. 참가비는 환불된다 */
+export type MatchStateCode = 'ENTERING' | 'PROCESS' | 'END' | 'CANCELED';
 
 export interface QueuePlayer {
   mongId: number;

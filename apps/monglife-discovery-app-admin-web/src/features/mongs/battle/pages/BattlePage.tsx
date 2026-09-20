@@ -12,7 +12,7 @@ import { Badge, Button, Card, CardHeader, CardTitle, PageHeader, Pagination } fr
 import { formatDateTime, formatDateTimeSec, formatNumber } from '@/shared/lib/format';
 
 const SIZE = 10;
-const STATE_CODES = ['ENTERING', 'PROCESS', 'END'];
+const STATE_CODES = ['ENTERING', 'PROCESS', 'END', 'CANCELED'];
 
 export function BattlePage() {
   const [page, setPage] = useState(0);
@@ -50,7 +50,7 @@ export function BattlePage() {
     {
       key: 'state',
       header: '상태',
-      cell: (m) => <Badge tone={m.stateCode === 'END' ? 'neutral' : m.stateCode === 'PROCESS' ? 'success' : 'primary'}>{m.stateCode}</Badge>,
+      cell: (m) => <Badge tone={m.stateCode === 'END' ? 'neutral' : m.stateCode === 'CANCELED' ? 'warning' : m.stateCode === 'PROCESS' ? 'success' : 'primary'}>{m.stateCode}</Badge>,
     },
     { key: 'round', header: '라운드', cell: (m) => `${m.round} / ${m.maxRound}` },
     { key: 'players', header: '플레이어', cell: (m) => `${m.playerCount}명${m.botCount > 0 ? ` (봇 ${m.botCount})` : ''}` },
@@ -60,7 +60,7 @@ export function BattlePage() {
       header: '',
       className: 'text-right',
       cell: (m) =>
-        m.stateCode !== 'END' ? (
+        m.stateCode !== 'END' && m.stateCode !== 'CANCELED' ? (
           <span onClick={(e) => e.stopPropagation()}>
             <Button size="sm" variant="secondary" onClick={() => setTerminating(m)}>강제 종료</Button>
           </span>
@@ -139,7 +139,7 @@ export function BattlePage() {
       <ConfirmDialog
         open={terminating !== null}
         title="매치를 강제 종료합니다"
-        description="보상·정산 없이 END 로 마감하고 앱에 종료를 알립니다. 멈춰 있는 매치에만 쓰세요."
+        description="입장 대기 중이던 매치는 CANCELED 로 마감하고 참가비를 돌려줍니다. 이미 진행 중인 매치는 정산 없이 END 로만 마감합니다."
         confirmLabel="강제 종료"
         danger
         loading={terminate.isPending}
