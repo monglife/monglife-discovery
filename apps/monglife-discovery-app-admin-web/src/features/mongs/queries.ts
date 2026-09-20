@@ -170,8 +170,11 @@ export function useBattleMutations() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: mongsKeys.all });
   return {
-    removeFromQueue: useMutation({ mutationFn: battleApi.removeFromQueue, onSuccess: invalidate }),
-    terminate: useMutation({ mutationFn: battleApi.terminate, onSuccess: invalidate }),
+    // onSuccess 가 아니라 onSettled 다. 배틀은 서버가 뒤에서도 상태를 바꾼다 - 입장 기한
+    // 스위퍼가 5초마다 돌며 ENTERING 을 CANCELED 로 마감한다. 실패는 대개 "그 사이 상태가
+    // 바뀌었다"(409)이므로, 실패했을 때야말로 목록을 다시 읽어야 낡은 행이 사라진다.
+    removeFromQueue: useMutation({ mutationFn: battleApi.removeFromQueue, onSettled: invalidate }),
+    terminate: useMutation({ mutationFn: battleApi.terminate, onSettled: invalidate }),
   };
 }
 

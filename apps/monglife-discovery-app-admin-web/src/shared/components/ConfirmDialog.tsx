@@ -7,6 +7,13 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   danger?: boolean;
   loading?: boolean;
+  /**
+   * 확인이 실패했을 때 서버가 준 문구. 넘기면 배너로 띄우고 창은 열어 둔다.
+   *
+   * 없으면 실패가 소리 없이 묻힌다 - 창이 그대로 열려 있으니 사용자는 아직 안 눌린 줄 알고
+   * 다시 누른다. 목록이 낡아 생기는 409 가 특히 그렇다.
+   */
+  error?: string;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -18,6 +25,7 @@ export function ConfirmDialog({
   confirmLabel = '확인',
   danger,
   loading,
+  error,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -37,6 +45,8 @@ export function ConfirmDialog({
           </Button>
         </>
       }
-    />
+    >
+      {error && <p className="rounded-md bg-danger-soft p-3 text-xs text-danger">{error}</p>}
+    </Dialog>
   );
 }

@@ -132,7 +132,11 @@ export function BattlePage() {
         description="배팅했던 페이 포인트는 되돌려 줍니다."
         confirmLabel="강제 이탈"
         loading={removeFromQueue.isPending}
-        onClose={() => setDequeue(null)}
+        error={removeFromQueue.error instanceof Error ? removeFromQueue.error.message : undefined}
+        onClose={() => {
+          setDequeue(null);
+          removeFromQueue.reset();
+        }}
         onConfirm={() => dequeue && removeFromQueue.mutate(dequeue.mongId, { onSuccess: () => setDequeue(null) })}
       />
 
@@ -143,7 +147,13 @@ export function BattlePage() {
         confirmLabel="강제 종료"
         danger
         loading={terminate.isPending}
-        onClose={() => setTerminating(null)}
+        // 기한 스위퍼가 먼저 마감한 매치를 누르면 409 가 온다. 목록은 30초마다 다시 읽고
+        // 기한도 30초라 늘 있는 경합이다. 묻지 말고 이유를 보여 준다.
+        error={terminate.error instanceof Error ? terminate.error.message : undefined}
+        onClose={() => {
+          setTerminating(null);
+          terminate.reset();
+        }}
         onConfirm={() => terminating && terminate.mutate(terminating.matchId, { onSuccess: () => setTerminating(null) })}
       />
     </>
