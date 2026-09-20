@@ -1,6 +1,8 @@
 /** domains/monglife-discovery-domain-device MaintenanceEntity */
 export interface Maintenance {
   maintenanceId: number;
+  /** 점검 대상 앱. null 이면 전역이라 모든 앱이 막힌다 */
+  appPackageName: string | null;
   /** 앱이 점검 화면에 그대로 띄우는 안내 문구 */
   message: string;
   /** 'YYYY-MM-DDTHH:mm:ss' — 서버 시간대(Asia/Seoul)의 벽시계다. UTC 가 아니다 */
@@ -16,6 +18,8 @@ export interface Maintenance {
 
 /** 등록·수정이 같은 모양이라 하나로 쓴다 */
 export interface SaveMaintenance {
+  /** 빈 문자열이면 전역. 서버가 공백을 null 로 바꿔 저장한다 */
+  appPackageName: string | null;
   message: string;
   startAt: string;
   endAt: string | null;

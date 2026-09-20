@@ -11,6 +11,7 @@ import {
 import { MaintenanceDetailDialog } from '../components/MaintenanceDetailDialog';
 import { MaintenanceFormDialog } from '../components/MaintenanceFormDialog';
 import { PHASE_LABEL, PHASE_TONE, maintenancePhase } from '../phase';
+import { targetAppLabel } from '../target';
 import type { Maintenance, MaintenancePhase, SaveMaintenance } from '../types';
 import { DataTable, type Column } from '@/shared/components/DataTable';
 import { FilterSelect } from '@/shared/components/FilterSelect';
@@ -22,7 +23,8 @@ const PHASES: MaintenancePhase[] = ['active', 'upcoming', 'past', 'disabled'];
 
 export function MaintenanceListPage() {
   const { data, isLoading } = useMaintenances();
-  const { data: current } = useCurrentMaintenance();
+  const { data: currentList } = useCurrentMaintenance();
+  const current = currentList ?? [];
   const create = useCreateMaintenance();
   const update = useUpdateMaintenance();
   const setEnabled = useSetMaintenanceEnabled();
@@ -55,6 +57,7 @@ export function MaintenanceListPage() {
         return <Badge tone={PHASE_TONE[p]}>{PHASE_LABEL[p]}</Badge>;
       },
     },
+    { key: 'target', header: '대상 앱', cell: (m) => targetAppLabel(m), className: 'whitespace-nowrap' },
     { key: 'start', header: '시작', cell: (m) => formatDateTime(m.startAt) },
     { key: 'end', header: '종료', cell: (m) => (m.endAt ? formatDateTime(m.endAt) : '미정'), className: 'text-muted-foreground' },
     { key: 'message', header: '안내 문구', cell: (m) => m.message },
@@ -88,7 +91,7 @@ export function MaintenanceListPage() {
     <>
       <PageHeader
         title="서버 점검"
-        description="점검 중이면 앱이 진입 화면에서 안내를 띄우고 멈춥니다. 로그인은 막지 않습니다. 행을 누르면 상세"
+        description="점검 중이면 대상 앱이 진입 화면에서 안내를 띄우고 멈춥니다. 대상 앱을 비우면 모든 앱이 막힙니다. 로그인은 막지 않습니다. 행을 누르면 상세"
         actions={
           <Button className="w-full sm:w-auto" onClick={() => setForm({ open: true, target: null })}>
             <Plus className="size-4" /> 일정 등록
@@ -97,18 +100,24 @@ export function MaintenanceListPage() {
       />
 
       {/* 서버 시계로 판정한 현재 상태. 표의 상태 배지는 브라우저 시계라 이쪽이 기준이다 */}
-      <Card className={current ? 'border-danger/40 bg-danger-soft' : undefined}>
+      <Card className={current.length ? 'border-danger/40 bg-danger-soft' : undefined}>
         <div className="flex flex-col gap-1 p-4">
-          <p className={current ? 'text-sm font-medium text-danger' : 'text-sm font-medium'}>
-            {current ? '지금 점검 중입니다' : '정상 운영 중입니다'}
+          <p className={current.length ? 'text-sm font-medium text-danger' : 'text-sm font-medium'}>
+            {current.length ? `지금 점검 중입니다 (${current.length}건)` : '정상 운영 중입니다'}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {current
-              ? `${current.message} · ${formatDateTime(current.startAt)} ~ ${current.endAt ? formatDateTime(current.endAt) : '종료 미정'}`
-              : next
-                ? `다음 예정: ${formatDateTime(next.startAt)} · ${next.message}`
-                : '예정된 점검이 없습니다.'}
-          </p>
+          {/* 앱별로 따로 내릴 수 있으므로 어느 앱이 막혔는지를 같이 적는다 */}
+          {current.length ? (
+            current.map((m) => (
+              <p key={m.maintenanceId} className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">{targetAppLabel(m)}</span>
+                {` · ${m.message} · ${formatDateTime(m.startAt)} ~ ${m.endAt ? formatDateTime(m.endAt) : '종료 미정'}`}
+              </p>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {next ? `다음 예정: ${formatDateTime(next.startAt)} · ${targetAppLabel(next)} · ${next.message}` : '예정된 점검이 없습니다.'}
+            </p>
+          )}
         </div>
       </Card>
 

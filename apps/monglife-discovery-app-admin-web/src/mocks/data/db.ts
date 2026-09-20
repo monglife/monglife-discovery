@@ -148,6 +148,8 @@ export const maintenances: Maintenance[] = [
   // 진행 중
   {
     maintenanceId: 3,
+    // 앱별 점검 — 이 앱만 막히고 나머지는 그대로 돈다
+    appPackageName: PACKAGES[0],
     message: '서버 점검 중입니다. 잠시 후 다시 이용해 주세요.',
     startAt: localIso(now - HOUR),
     endAt: localIso(now + 2 * HOUR),
@@ -159,6 +161,7 @@ export const maintenances: Maintenance[] = [
   // 예정
   {
     maintenanceId: 2,
+    appPackageName: null,
     message: '정기 점검이 예정되어 있습니다.',
     startAt: localIso(now + 3 * DAY),
     endAt: localIso(now + 3 * DAY + 2 * HOUR),
@@ -170,6 +173,7 @@ export const maintenances: Maintenance[] = [
   // 종료
   {
     maintenanceId: 1,
+    appPackageName: null,
     message: '긴급 점검을 진행했습니다.',
     startAt: localIso(now - 10 * DAY),
     endAt: localIso(now - 10 * DAY + HOUR),

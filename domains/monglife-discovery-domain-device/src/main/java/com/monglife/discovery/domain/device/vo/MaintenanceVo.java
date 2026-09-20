@@ -10,6 +10,9 @@ public class MaintenanceVo {
 
     private final Long maintenanceId;
 
+    /** 점검 대상 앱. null 이면 전역이라 모든 앱이 막힌다 */
+    private final String appPackageName;
+
     private final String message;
 
     private final LocalDateTime startAt;
@@ -26,8 +29,9 @@ public class MaintenanceVo {
     private final LocalDateTime updatedAt;
 
     @Builder
-    public MaintenanceVo(Long maintenanceId, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled, Boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public MaintenanceVo(Long maintenanceId, String appPackageName, String message, LocalDateTime startAt, LocalDateTime endAt, Boolean enabled, Boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.maintenanceId = maintenanceId;
+        this.appPackageName = appPackageName;
         this.message = message;
         this.startAt = startAt;
         this.endAt = endAt;
