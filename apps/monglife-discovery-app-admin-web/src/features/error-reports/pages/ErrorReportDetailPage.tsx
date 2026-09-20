@@ -18,6 +18,7 @@ export function ErrorReportDetailPage() {
   const reply = useReplyErrorReport(id);
   const [confirm, setConfirm] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
+  const [logsOpen, setLogsOpen] = useState(false);
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { content: '' } });
 
   if (isLoading) return <div className="h-40 animate-pulse rounded bg-surface-muted" />;
@@ -49,6 +50,29 @@ export function ErrorReportDetailPage() {
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{r.content}</p>
             </CardBody>
           </Card>
+
+          {/*
+            진단 로그. 기본으로 접어 둔다 - 수백 줄이라 펼쳐 두면 답변 작성 칸이 화면 밖으로 밀린다.
+            구버전 앱이 보낸 신고에는 없다.
+          */}
+          {r.logs && (
+            <Card>
+              <CardHeader>
+                <CardTitle>진단 로그</CardTitle>
+                <Button size="sm" variant="ghost" onClick={() => setLogsOpen((v) => !v)}>
+                  {logsOpen ? '접기' : `펼치기 (${r.logs.split('\n').length}줄)`}
+                </Button>
+              </CardHeader>
+              {logsOpen && (
+                <CardBody>
+                  {/* 로그는 자동 줄바꿈하지 않는다. 한 줄이 한 사건이라 접히면 오히려 읽기 어렵다. */}
+                  <pre className="max-h-96 overflow-auto rounded-md bg-surface-muted p-3 font-mono text-[11px] leading-relaxed">
+                    {r.logs}
+                  </pre>
+                </CardBody>
+              )}
+            </Card>
+          )}
 
           <Card>
             <CardHeader><CardTitle>답변</CardTitle></CardHeader>

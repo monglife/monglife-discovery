@@ -108,6 +108,8 @@ final class AdminMapper {
                 .buildVersion(f.getBuildVersion())
                 .title(f.getTitle())
                 .content(withContent ? f.getContent() : null)
+                // 목록에서는 애초에 조회조차 하지 않는다. 이 삼항은 그 전제가 깨졌을 때의 안전망이다.
+                .logs(withContent ? f.getLogs() : null)
                 .status(f.getStatus())
                 .createdAt(f.getCreatedAt())
                 .reply(reply)

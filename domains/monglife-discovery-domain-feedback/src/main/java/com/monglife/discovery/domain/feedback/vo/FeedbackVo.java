@@ -34,12 +34,17 @@ public class FeedbackVo {
 
     private final LocalDateTime repliedAt;
 
+    /**
+     * 앱 진단 로그. 별도 표에 있고 상세 조회에서만 채운다 - 목록에서는 항상 null 이다.
+     */
+    private final String logs;
+
     private final LocalDateTime createdAt;
 
     private final LocalDateTime updatedAt;
 
-    @Builder
-    public FeedbackVo(Long feedbackId, Long accountId, String deviceId, String deviceName, String appPackageName, String buildVersion, String title, String content, String status, String replyContent, String replySentTo, Long replyAccountId, LocalDateTime repliedAt, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    @Builder(toBuilder = true)
+    public FeedbackVo(Long feedbackId, Long accountId, String deviceId, String deviceName, String appPackageName, String buildVersion, String title, String content, String status, String replyContent, String replySentTo, Long replyAccountId, LocalDateTime repliedAt, String logs, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.feedbackId = feedbackId;
         this.accountId = accountId;
         this.deviceId = deviceId;
@@ -53,6 +58,7 @@ public class FeedbackVo {
         this.replySentTo = replySentTo;
         this.replyAccountId = replyAccountId;
         this.repliedAt = repliedAt;
+        this.logs = logs;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
