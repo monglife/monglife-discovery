@@ -96,6 +96,7 @@ src/
 | `/devices` | 1.2 기기 관리 (상세 모달, 삭제) |
 | `/sessions` | 2.1 로그인 사용자 현황, 2.2 토큰 상세·만료(로그아웃) |
 | `/app-versions` | 3. 앱 버전 등록·강제 업데이트 ON/OFF |
+| `/maintenance` | 서버 점검 일정 등록·수정·삭제, 사용 ON/OFF |
 | `/notifications` | 4. 알림 가능 기기 조회·푸시 전송 |
 | `/error-reports`, `/error-reports/:id` | 사용자 오류 신고 목록·상세·답변(이메일) |
 
@@ -119,6 +120,13 @@ GET    /admin/app-versions
 POST   /admin/app-versions                { appPackageName, buildVersion, mustUpdate }
 PATCH  /admin/app-versions/:id            { mustUpdate }
 DELETE /admin/app-versions/:id
+
+GET    /admin/maintenances
+GET    /admin/maintenances/current        진행 중인 일정 또는 result: null
+POST   /admin/maintenances                { message, startAt, endAt, enabled }
+PUT    /admin/maintenances/:id            { message, startAt, endAt, enabled }
+PATCH  /admin/maintenances/:id            { enabled }
+DELETE /admin/maintenances/:id
 GET    /admin/notification/devices?page&size&query&accountId&deviceName
 POST   /admin/notification/mongs          { accountId, title, body }   ← 실존
 GET    /admin/error-reports?page&size&query&status&deviceName&appPackageName&buildVersion&sort(reportId|createdAt)

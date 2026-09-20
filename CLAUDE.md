@@ -66,6 +66,11 @@ git add configs && git commit -m "chore: configs 서브모듈 갱신"
 옛 커밋을 가리키면 옛 설정으로 빌드된다. 새로 추가한 키가 없으면 **기동 실패**로 이어진다.
 `git status` 에 ` M configs` 가 남아 있다면 아직 포인터를 커밋하지 않은 것이다.
 
+**stg/prd 의 스키마는 손으로 만든다.** 두 환경은 `hbm2ddl.auto` 가 `none` 이라 엔티티를 더해도
+표가 생기지 않고, `validate` 가 아니라 `none` 이라 **스키마가 틀려도 기동은 된다.** 그 경로를 처음
+밟는 사용자 요청에서야 터진다. 운영 DDL 통합본이 `configs/migration/v3.1.0.sql` 에 있으니
+**엔티티를 더하면 여기에 같이 더하고, 애플리케이션보다 먼저 적용한다.** 멱등이라 여러 번 돌려도 된다.
+
 설정 파일의 이름 규칙·프로파일 규칙·시크릿 취급은 `configs/CLAUDE.md` 에 있다. 요약하면:
 
 - 프로파일은 `local` / `dev` / `stg` / `prd` 네 개다. **키를 추가하면 네 개 전부에 넣는다.**
@@ -103,9 +108,14 @@ git add configs && git commit -m "chore: configs 서브모듈 갱신"
 > 서브프로젝트에 아직 적용되지 않아 Groovy 가 **owner(루트 프로젝트)** 로 폴백하고, 에러 없이 조용히
 > 루트만 설정된다. 실제로 이 함정 때문에 `sourceCompatibility = 17` 이 오래 무시되고 있었다.
 
-테스트는 현재 `apps/monglife-discovery-app-common-api/src/test` 에만 있다. 다른 모듈에 테스트를
-추가한다면 **그 모듈 `build.gradle` 에 `useJUnitPlatform()` 을 넣어야 한다.** spring-boot 플러그인이
-자동으로 넣어주지 않아, 없으면 **테스트가 0개 실행되고도 `BUILD SUCCESSFUL`** 이 난다.
+테스트는 `apps/monglife-discovery-app-common-api` 와 `domains/monglife-discovery-domain-device` 에 있다.
+다른 모듈에 테스트를 추가한다면 **그 모듈 `build.gradle` 에 `useJUnitPlatform()` 과
+`testImplementation "org.springframework.boot:spring-boot-starter-test"` 를 넣어야 한다.** spring-boot
+플러그인이 자동으로 넣어주지 않아, 없으면 **테스트가 0개 실행되고도 `BUILD SUCCESSFUL`** 이 난다.
+
+도메인 서비스 테스트는 **그 도메인 모듈에 둔다.** common-api 쪽에 두면 `JpaRepository` 의 상속 메서드
+(`save` / `findById`)가 컴파일되지 않는다 — spring-data-jpa 가 도메인 모듈에 `implementation` 으로
+들어와 common-api 의 컴파일 클래스패스까지 전파되지 않기 때문이다.
 
 ### 로컬 실행
 
@@ -291,6 +301,15 @@ credential 로그인 요청의 idToken 이 여기 해당한다 — 미조치)
 → **인증 관련 컨트롤러 메서드는 반드시 기존 `AuthController` 안에 추가한다.** 다른 패키지에 새 컨트롤러를
 만들면 `NotExistsAccountException` 이 404 대신 400 으로 나가 **클라이언트의 회원가입 분기가 깨진다.**
 또 새 예외를 **401 로 내리면 안 된다.** 앱의 전역 401 인터셉터(세션 만료 → 강제 로그아웃)와 충돌한다.
+
+**앱 진입 관문은 `/public/auth/verify/version` 하나다.**
+앱은 켜질 때 이 경로를 한 번 부르고, 응답의 `mustUpdate`(강제 업데이트)와 `underMaintenance`(서버 점검)로
+진입을 막을지 정한다. **여기서 예외가 나면 앱이 아예 뜨지 못한다.** 그래서 둘 다 여기 실려 있다 —
+점검용 엔드포인트를 따로 두면 앱을 켤 때마다 요청이 두 번 나간다.
+→ 새 앱 버전은 배포 전에 `app_version.sql` 에 행을 넣어야 하고(없으면 400),
+`monglife_maintenance` 표는 코드보다 **먼저** 만들어야 한다(`configs/migration/v3.1.0.sql`).
+필드는 **더하기만 한다.** 구버전 앱의 Gson 은 모르는 필드를 무시하지만 사라진 필드에는 깨진다.
+점검은 **로그인을 막지 않는다** — 플래그만 내려주고 멈추는 판단은 앱이 한다.
 
 **레거시 경로 재작성.** `RegercyAuthFilter` 가 `/auth/**`, `/userDevice/**` 요청을 `/public/**` 으로
 재작성한다. `SecurityConfig` 는 `/public/**` 을 permitAll 로 열어 둔다.

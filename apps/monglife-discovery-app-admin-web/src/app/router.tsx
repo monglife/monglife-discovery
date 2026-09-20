@@ -8,6 +8,7 @@ import { AccountDetailPage } from '@/features/accounts/pages/AccountDetailPage';
 import { DeviceListPage } from '@/features/devices/pages/DeviceListPage';
 import { ActiveSessionsPage } from '@/features/sessions/pages/ActiveSessionsPage';
 import { AppVersionListPage } from '@/features/app-versions/pages/AppVersionListPage';
+import { MaintenanceListPage } from '@/features/maintenance/pages/MaintenanceListPage';
 import { NotificationPage } from '@/features/notifications/pages/NotificationPage';
 import { ErrorReportListPage } from '@/features/error-reports/pages/ErrorReportListPage';
 import { ErrorReportDetailPage } from '@/features/error-reports/pages/ErrorReportDetailPage';
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
           { path: 'devices', element: <DeviceListPage /> },
           { path: 'sessions', element: <ActiveSessionsPage /> },
           { path: 'app-versions', element: <AppVersionListPage /> },
+          { path: 'maintenance', element: <MaintenanceListPage /> },
           { path: 'notifications', element: <NotificationPage /> },
           { path: 'error-reports', element: <ErrorReportListPage /> },
           { path: 'error-reports/:reportId', element: <ErrorReportDetailPage /> },

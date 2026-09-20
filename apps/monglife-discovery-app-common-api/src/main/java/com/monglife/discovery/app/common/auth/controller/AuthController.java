@@ -263,7 +263,10 @@ public class AuthController {
     }
 
     /**
-     * 앱 버전 검증
+     * 앱 버전 검증 (+ 서버 점검 여부)
+     *
+     * <p>앱이 진입 때 부르는 관문이다. 강제 업데이트와 점검 안내가 이 한 응답에 같이 실려 나간다.
+     *
      * @param appPackageName 앱 패키지 명
      * @param buildVersion 앱 빌드 버전
      * @return 앱 빌드 버전 검증 응답 Dto
@@ -280,6 +283,10 @@ public class AuthController {
                 .appPackageName(verifyBuildVersionDto.getAppPackageName())
                 .buildVersion(verifyBuildVersionDto.getBuildVersion())
                 .mustUpdate(verifyBuildVersionDto.getMustUpdate())
+                .underMaintenance(verifyBuildVersionDto.getUnderMaintenance())
+                .maintenanceMessage(verifyBuildVersionDto.getMaintenanceMessage())
+                .maintenanceStartAt(verifyBuildVersionDto.getMaintenanceStartAt())
+                .maintenanceEndAt(verifyBuildVersionDto.getMaintenanceEndAt())
                 .build();
 
         return ResponseEntity.ok().body(AuthResponse.DISCOVERY_APP_VERIFY_BUILD_VERSION.toResponseDto(verifyBuildVersionResponseDto));

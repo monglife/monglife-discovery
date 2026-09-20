@@ -29,6 +29,11 @@ public enum AdminResponse implements Response {
     DISCOVERY_APP_ADMIN_FEEDBACK_REPLY(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-052", "오류 신고 답변을 발송하였습니다."),
     DISCOVERY_APP_ADMIN_META_FILTERS(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-060", "필터 옵션 조회에 성공하였습니다."),
     DISCOVERY_APP_ADMIN_STATS(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-070", "통계 조회에 성공하였습니다."),
+    DISCOVERY_APP_ADMIN_MAINTENANCE_LIST(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-080", "점검 일정 목록 조회에 성공하였습니다."),
+    DISCOVERY_APP_ADMIN_MAINTENANCE_CURRENT(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-081", "진행 중인 점검 조회에 성공하였습니다."),
+    DISCOVERY_APP_ADMIN_MAINTENANCE_CREATE(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-082", "점검 일정 등록에 성공하였습니다."),
+    DISCOVERY_APP_ADMIN_MAINTENANCE_UPDATE(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-083", "점검 일정 수정에 성공하였습니다."),
+    DISCOVERY_APP_ADMIN_MAINTENANCE_DELETE(HttpStatus.OK.value(), "DISCOVERY-APP-ADMIN-084", "점검 일정 삭제에 성공하였습니다."),
     ;
 
     private final Integer httpStatus;
