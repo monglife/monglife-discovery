@@ -14,6 +14,7 @@ import {
   Swords,
   Target,
   Users,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -65,6 +66,11 @@ export const NAV: NavEntry[] = [
   {
     title: '앱 버전',
     items: [{ to: '/app-versions', label: '버전 관리', icon: Package }],
+  },
+  // 점검은 버전이 아니라 서버 쪽 상태라 그룹을 나눈다
+  {
+    title: '서버 운영',
+    items: [{ to: '/maintenance', label: '점검 관리', icon: Wrench }],
   },
   {
     title: '알림',

@@ -20,12 +20,15 @@ import com.monglife.discovery.domain.account.vo.AccountVo;
 import com.monglife.discovery.domain.account.vo.LoginHistoryVo;
 import com.monglife.discovery.domain.account.vo.TokenVo;
 import com.monglife.discovery.domain.device.service.AppVersionService;
+import com.monglife.discovery.domain.device.service.MaintenanceService;
 import com.monglife.discovery.domain.device.vo.AppVersionVo;
+import com.monglife.discovery.domain.device.vo.MaintenanceVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,8 @@ public class AuthService {
     private final AccountService accountService;
 
     private final AppVersionService appVersionService;
+
+    private final MaintenanceService maintenanceService;
 
     private final TokenService tokenService;
 
@@ -384,6 +389,13 @@ public class AuthService {
 
     /**
      * BuildVersion 검증
+     *
+     * <p>앱이 진입 때 부르는 유일한 관문이라 서버 점검 여부도 여기에 같이 실어 보낸다.
+     * 점검이라고 예외를 던지지는 않는다 — 멈출지는 앱이 판단한다.
+     *
+     * <p>버전 조회가 먼저다. 등록되지 않은 버전이면 지금처럼 {@code NotExistsAppVersionException}
+     * 이고 점검 안내도 받지 못한다. 새 앱 버전은 배포 전에 행을 넣어 두어야 한다는 기존 규칙 그대로다.
+     *
      * @param appPackageName 앱 패키지 명
      * @param buildVersion 빌드 버전
      * @return 검증 정보 Dto
@@ -393,10 +405,16 @@ public class AuthService {
 
         AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
 
+        Optional<MaintenanceVo> maintenanceVo = maintenanceService.getActiveMaintenance();
+
         return VerifyBuildVersionDto.builder()
                 .appPackageName(appVersionVo.getAppPackageName())
                 .buildVersion(appVersionVo.getBuildVersion())
                 .mustUpdate(appVersionVo.getMustUpdate())
+                .underMaintenance(maintenanceVo.isPresent())
+                .maintenanceMessage(maintenanceVo.map(MaintenanceVo::getMessage).orElse(null))
+                .maintenanceStartAt(maintenanceVo.map(MaintenanceVo::getStartAt).orElse(null))
+                .maintenanceEndAt(maintenanceVo.map(MaintenanceVo::getEndAt).orElse(null))
                 .build();
     }
 

@@ -8,9 +8,18 @@ dependencies {
     // h2 (local 프로파일 전용)
     runtimeOnly "com.h2database:h2"
 
+    // test
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+
     // queryDSL
     implementation "com.querydsl:querydsl-jpa:5.0.0:jakarta"
     annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties["querydsl.version"]}:jakarta"
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+}
+
+// JUnit 5. spring-boot 플러그인은 이 설정을 자동으로 넣어주지 않는다 —
+// 없으면 테스트가 0개 실행되고도 BUILD SUCCESSFUL 이 난다.
+tasks.named("test") {
+    useJUnitPlatform()
 }

@@ -6,6 +6,7 @@ import type { Account, LoginHistory, Platform } from '@/features/accounts/types'
 import type { Device } from '@/features/devices/types';
 import type { Token } from '@/features/sessions/types';
 import type { AppVersion } from '@/features/app-versions/types';
+import type { Maintenance } from '@/features/maintenance/types';
 
 // 결정적 의사난수 — 새로고침해도 같은 데이터
 let seed = 42;
@@ -129,4 +130,54 @@ PACKAGES.forEach((p) =>
   ),
 );
 
-export const db = { accounts, devices, loginHistories, tokens, appVersions };
+/**
+ * 점검 일정.
+ *
+ * 서버는 시간대 없는 LocalDateTime 문자열을 준다. iso() 는 UTC('Z') 로 만들어 9시간
+ * 어긋나므로 여기서는 로컬 벽시계 문자열을 쓴다 - 화면의 시간대 처리를 목에서도 그대로 본다.
+ */
+const localIso = (ms: number) => {
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
+const HOUR = 3_600_000;
+
+export const maintenances: Maintenance[] = [
+  // 진행 중
+  {
+    maintenanceId: 3,
+    message: '서버 점검 중입니다. 잠시 후 다시 이용해 주세요.',
+    startAt: localIso(now - HOUR),
+    endAt: localIso(now + 2 * HOUR),
+    enabled: true,
+    active: true,
+    createdAt: localIso(now - 2 * DAY),
+    updatedAt: localIso(now - 2 * DAY),
+  },
+  // 예정
+  {
+    maintenanceId: 2,
+    message: '정기 점검이 예정되어 있습니다.',
+    startAt: localIso(now + 3 * DAY),
+    endAt: localIso(now + 3 * DAY + 2 * HOUR),
+    enabled: true,
+    active: false,
+    createdAt: localIso(now - DAY),
+    updatedAt: localIso(now - DAY),
+  },
+  // 종료
+  {
+    maintenanceId: 1,
+    message: '긴급 점검을 진행했습니다.',
+    startAt: localIso(now - 10 * DAY),
+    endAt: localIso(now - 10 * DAY + HOUR),
+    enabled: true,
+    active: false,
+    createdAt: localIso(now - 11 * DAY),
+    updatedAt: localIso(now - 10 * DAY),
+  },
+];
+
+export const db = { accounts, devices, loginHistories, tokens, appVersions, maintenances };

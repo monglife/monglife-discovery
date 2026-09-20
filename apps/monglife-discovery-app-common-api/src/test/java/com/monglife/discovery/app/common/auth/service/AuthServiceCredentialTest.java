@@ -14,6 +14,7 @@ import com.monglife.discovery.domain.account.service.TokenService;
 import com.monglife.discovery.domain.account.vo.AccountVo;
 import com.monglife.discovery.domain.account.vo.TokenVo;
 import com.monglife.discovery.domain.device.service.AppVersionService;
+import com.monglife.discovery.domain.device.service.MaintenanceService;
 import com.monglife.discovery.domain.device.vo.AppVersionVo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +54,7 @@ class AuthServiceCredentialTest {
 
     @Mock private AccountService accountService;
     @Mock private AppVersionService appVersionService;
+    @Mock private MaintenanceService maintenanceService;
     @Mock private TokenService tokenService;
     @Mock private LoginHistoryService loginHistoryService;
     @Mock private TokenProvider tokenProvider;
