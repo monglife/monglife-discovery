@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Smartphone,
   Swords,
+  Target,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -91,6 +92,7 @@ export const NAV: NavEntry[] = [
         title: '게임 콘텐츠',
         items: [
           { to: '/mongs/notices', label: '공지 사항', icon: Megaphone },
+          { to: '/mongs/missions', label: '미션', icon: Target },
           { to: '/mongs/master', label: '마스터 데이터', icon: Database },
           { to: '/mongs/stats', label: '게임 통계', icon: BarChart3 },
         ],

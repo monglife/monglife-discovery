@@ -53,7 +53,7 @@ export function NoticeListPage() {
             label="노출"
             onCheckedChange={(visible) => hide.mutate({ noticeId: n.noticeId, isHided: !visible })}
           />
-          <Button size="sm" variant="ghost" className="text-danger hover:bg-danger-soft" onClick={() => setRemoving(n)}>
+          <Button size="sm" variant="danger-ghost" onClick={() => setRemoving(n)}>
             삭제
           </Button>
         </span>

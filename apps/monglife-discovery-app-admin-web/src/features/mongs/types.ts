@@ -125,7 +125,6 @@ export interface Mong {
 
 export interface MongSleepPatch {
   isSleep: boolean;
-  reason?: string;
 }
 
 /** null 인 항목은 서버가 건드리지 않는다 */
@@ -139,15 +138,22 @@ export interface MongStatusPatch {
   payPoint?: number | null;
   poopCount?: number | null;
   randomDrawTicketCount?: number | null;
-  reason?: string;
 }
+
+/**
+ * 서버 MongSchedulerType 의 **코드**. enum 이름(DECREASE_STATUS)이 아니라 하이픈 코드다.
+ * 목록 응답이 이 값을 주고 등록 요청도 이 값을 받는다.
+ */
+export type MongSchedulerTypeCode =
+  | 'EGG-EVOLUTION' | 'SLEEP' | 'WAKEUP'
+  | 'INCREASE-STATUS' | 'DECREASE-STATUS' | 'INCREASE-POOP' | 'DEAD';
 
 /** mongs_task. 몽마다 도는 스케줄 */
 export interface Task {
   taskId: number;
   mongId: number;
   accountId: number;
-  schedulerTypeCode: string;
+  schedulerTypeCode: MongSchedulerTypeCode;
   stateCode: 'PROCESSING' | 'PAUSE' | 'APP_STOP_PROCESSING' | 'APP_STOP_PAUSE';
   typeCode: string;
   expirationSeconds: number | null;
@@ -172,6 +178,8 @@ export interface EvolutionHistory {
   mongEvolutionHistoryId: number;
   accountId: number;
   mongCode: string;
+  /** 마스터에서 지워진 코드면 null */
+  mongName: string | null;
   evolutionScore: number;
 }
 
@@ -231,7 +239,8 @@ export interface RandomDraw {
 }
 
 /* ── character: 배틀 ───────────────────────────────────────────────────── */
-export type MatchStateCode = 'ENTERING' | 'PROCESS' | 'END';
+/** CANCELED 는 입장 기한을 넘겨 취소된 매치. 참가비는 환불된다 */
+export type MatchStateCode = 'ENTERING' | 'PROCESS' | 'END' | 'CANCELED';
 
 export interface QueuePlayer {
   mongId: number;
@@ -289,4 +298,69 @@ export interface BattleStats {
   todayMatches: number;
   todayBotMatches: number;
   processingMatches: number;
+}
+
+/* ── 미션 ──────────────────────────────────────────────────────────────── */
+
+export type MissionCycleCode = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+
+export type MissionActionCode =
+  | 'FEED_FOOD' | 'FEED_SNACK' | 'STROKE' | 'POOP_CLEAN' | 'TRAINING_END'
+  | 'RANDOM_DRAW' | 'BUY_RANDOM_DRAW_TICKET' | 'USE_INVENTORY' | 'SLEEP' | 'WAKEUP'
+  | 'EVOLUTION' | 'GRADUATE' | 'CREATE_MONG' | 'PAY_POINT_SPEND' | 'PAY_POINT_EARN'
+  | 'EXP_EARN' | 'TRAINING_SCORE' | 'CARE_DAY';
+
+/** COUNT=횟수, DISTINCT=서로 다른 대상 수, ACCUMULATE=누적 수치 */
+export type MissionGoalTypeCode = 'COUNT' | 'DISTINCT' | 'ACCUMULATE';
+
+export type MissionRewardTypeCode = 'EXP' | 'PAY_POINT' | 'STAR_POINT' | 'INVENTORY';
+
+export type MissionStateCode = 'IN_PROGRESS' | 'CLAIMABLE' | 'CLAIMED';
+
+export interface MissionReward {
+  /** INVENTORY 일 때만 rewardCode·inventoryTypeCode 가 찬다 */
+  rewardTypeCode: MissionRewardTypeCode;
+  rewardCode: string | null;
+  inventoryTypeCode: 'FOOD' | 'SNACK' | 'MAP' | null;
+  amount: number;
+}
+
+export interface Mission {
+  missionId: number;
+  missionCode: string;
+  cycleCode: MissionCycleCode;
+  actionCode: MissionActionCode;
+  goalTypeCode: MissionGoalTypeCode;
+  title: string;
+  description: string | null;
+  goalCount: number;
+  isActive: boolean;
+  sortOrder: number;
+  /** 로테이션 그룹. 주간·월간은 주기마다 한 그룹씩 돌아가며 나간다. 일간은 쓰지 않는다 */
+  rotationGroup: number;
+  /** 지금 사용자에게 나가는 중인가. true 면 수정·삭제가 막히고 노출 토글만 열린다 */
+  isPublished: boolean;
+  /** 이번 주기 구간 (서버 기준 시간대). 주간은 월요일~일요일 */
+  periodStart: string;
+  periodEnd: string;
+  /** 이번 주기에 당첨된 그룹. rotationGroup 과 같으면 게시 중이다 */
+  currentRotationGroup: number | null;
+  rewards: MissionReward[];
+}
+
+/** 특정 계정의 이번 주기 진행 현황 */
+export interface AccountMission {
+  accountMissionId: number;
+  accountId: number;
+  missionCode: string;
+  cycleCode: MissionCycleCode;
+  /** DAILY=20260917 / WEEKLY=2026-W38 / MONTHLY=202609 (KST) */
+  cycleKey: string;
+  title: string;
+  goalCount: number;
+  progressCount: number;
+  stateCode: MissionStateCode;
+  /** DISTINCT 목표에서 이미 센 대상들 */
+  detailCodes: string[];
+  claimedAt: string | null;
 }

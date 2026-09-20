@@ -41,11 +41,18 @@ npm run dev        # http://localhost:5173  (PROFILE=dev → 127.0.0.1:8010 실�
 빌드는 `npm run build:stg` / `npm run build:prd`. 실제로 배포되는 건 prd 뿐이다
 (`configs/deploy/stage` 에 edge 가 없다).
 
-- **세 프로파일 모두 CORS 가 없다.** `VITE_API_BASE_URL` 이 셋 다 `/api` 라 브라우저는 같은 출처만
-  부르고, Vite 프록시가 `/api/character`·`/api/user` 는 게이트웨이로, 나머지는 common-api 로 넘긴다.
+- **세 프로파일 모두 상대 경로 `/api` 다.** 브라우저는 같은 출처만 부르고, Vite 프록시가
+  `/api/character`·`/api/user` 는 게이트웨이로, 나머지는 common-api 로 넘긴다.
   절대 주소로 두면 `localhost:5173` 이 `env.admin.allowed-origins` 에 없어 막힌다.
+- ⚠ **프록시를 쓴다고 CORS 가 사라지지 않는다.** 브라우저 프리플라이트는 없어지지만 백엔드의
+  `CorsFilter` 는 그대로 돈다. 브라우저가 같은 출처라도 POST/PUT/DELETE 에는 `Origin` 을 붙이고,
+  `changeOrigin` 은 `Host` 만 바꾸기 때문이다. 그대로 두면 stg/prd 가 평문 403 `Invalid CORS request`
+  를 주고 화면은 "서버가 JSON 이 아닌 응답을 보냈습니다" 로 뜬다. GET 은 `Origin` 이 안 붙어
+  화면 로딩만 멀쩡하니 **로그인 같은 POST 에서만 터진다.**
+  → `vite.config.ts` 가 세 프록시 규칙 모두에서 `Origin` 헤더를 떼어 해결한다. 백엔드는 안 건드린다.
 - `build:prd` 산출물도 같은 `/api` 로 동작한다. `admin.monglife.cloud` 의 인그레스가 같은 호스트
-  `/api/` 를 common-api 로 넘기기 때문이다(`configs/deploy/product/edge`).
+  `/api/` 를 common-api 로 넘기기 때문이다(`configs/deploy/product/edge`). 이쪽은 진짜 같은 출처라
+  `Origin` 문제가 없다.
 - `100.0.0.x` 는 사설 IP 라 **VPN 안에서만 닿는다.**
 - ⚠ `dev:prd` 는 로컬 화면에서 실제 운영 데이터를 보고 고친다. 조회 외 동작은 신중히.
 - `--mode` 를 쓰지 않는다. `<프로파일>.env` 라 Vite 가 자동으로 읽지 않는다.
@@ -181,7 +188,8 @@ GET    /character/admin/ping · /user/admin/ping    게이트웨이→패스포�
 ## 다음 단계 (이 모듈 밖)
 
 - ~~토큰 재발급~~ → `src/shared/api/client.ts` 가 401 을 받으면 `/public/auth/reissue` 로 한 번 재발급하고 재시도한다.
-- ~~CORS 또는 동일 출처~~ → common-api `SecurityConfig` 의 CORS(`env.admin.allowed-origins`) + local/dev 프록시로 정리.
+- ~~CORS 또는 동일 출처~~ → 배포는 인그레스로 동일 출처, 개발 서버는 Vite 프록시 + `Origin` 제거로 정리.
+  common-api `SecurityConfig` 의 `env.admin.allowed-origins` 는 배포 출처만 담으면 된다.
 - ~~정적 호스팅~~ → `configs/deploy/product/edge` 의 `monglife-admin` 컨테이너 + 인그레스 `admin.monglife.cloud` 블록.
   `build:prd` 산출물(`dist/`)을 서버 `~/edge/build/monglife-admin/dist` 로 보내고 `./service.sh up`.
 - **Node CI/CD.** `.github/actions/ci/build-test` 는 Gradle 전용이라 별도 워크플로(`cd-admin`)가 필요하다. 아직 없다 — 위 배포는 수동.

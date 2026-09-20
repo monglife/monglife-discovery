@@ -1,4 +1,4 @@
-/** 사용자 오류 신고. 백엔드에 아직 없는 도메인 — 목 계약 */
+/** 사용자 오류 신고. 백엔드 AdminFeedbackController(/admin/error-reports) 와 1:1 */
 export type ErrorReportStatus = 'OPEN' | 'ANSWERED';
 
 /** 관리자 답변. 1회, 재답변은 덮어쓴다 */

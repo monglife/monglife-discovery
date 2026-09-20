@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type ProxyOptions } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
@@ -40,6 +40,22 @@ export default defineConfig(() => {
   const apiTarget = process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8010';
   const gatewayTarget = process.env.GATEWAY_PROXY_TARGET ?? 'http://127.0.0.1:8000';
 
+  // ⚠ Origin 헤더를 떼고 넘긴다. 이게 없으면 stg/prd 백엔드가 403 "Invalid CORS request" 를 준다.
+  //
+  // 브라우저는 같은 출처(localhost:5173)라 프리플라이트를 보내지 않지만, POST/PUT/DELETE 에는
+  // Origin: http://localhost:5173 을 붙인다. changeOrigin 은 Host 만 바꾸고 Origin 은 그대로
+  // 전달하므로, 백엔드의 Spring CorsFilter 가 이를 교차 출처 요청으로 보고 env.admin.allowed-origins
+  // (stg=http://100.0.0.10, prd=https://admin.monglife.cloud)에 없다며 평문 403 으로 막는다.
+  // GET 은 Origin 이 안 붙어서 화면 로딩만 멀쩡해 원인을 찾기 어렵다.
+  //
+  // Origin 을 떼면 CorsUtils.isCorsRequest() 가 false 라 CorsFilter 를 그냥 통과한다.
+  // 서버 대 서버 호출과 같아지는 것이고, 백엔드 허용 목록을 바꿀 필요가 없다.
+  const stripOrigin: NonNullable<ProxyOptions['configure']> = (proxy) => {
+    proxy.on('proxyReq', (proxyReq) => {
+      proxyReq.removeHeader('origin');
+    });
+  };
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -52,9 +68,9 @@ export default defineConfig(() => {
       // 게이트웨이 라우트(/api/character, /api/user)와 common-api(context-path /api)가 같은 접두사라
       // 구체적인 키를 먼저 둔다. Vite 는 선언 순서대로 첫 매치를 쓴다.
       proxy: {
-        '/api/character': { target: gatewayTarget, changeOrigin: true },
-        '/api/user': { target: gatewayTarget, changeOrigin: true },
-        '/api': { target: apiTarget, changeOrigin: true },
+        '/api/character': { target: gatewayTarget, changeOrigin: true, configure: stripOrigin },
+        '/api/user': { target: gatewayTarget, changeOrigin: true, configure: stripOrigin },
+        '/api': { target: apiTarget, changeOrigin: true, configure: stripOrigin },
       },
     },
   };

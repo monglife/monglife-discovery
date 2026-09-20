@@ -11,3 +11,4 @@ export * from './PageHeader';
 export * from './EmptyState';
 export * from './Pagination';
 export * from './Field';
+export * from './StatSlider';

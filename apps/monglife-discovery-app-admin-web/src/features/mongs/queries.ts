@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  battleApi, masterApi, masterCreateApi, masterDeleteApi, membersApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
+  battleApi, masterApi, masterCreateApi, masterDeleteApi, membersApi, missionsApi, mongDetailApi, noticesApi, ordersApi, statsApi, stepsApi,
 } from './api';
-import type { MasterKind } from './api';
-import type { MongSleepPatch, MongStateCode, MongStatusPatch } from './types';
+import type { MasterKind, MissionUpdateBody } from './api';
+import type { MongSchedulerTypeCode, MongSleepPatch, MongStateCode, MongStatusPatch } from './types';
 
 export const mongsKeys = {
   all: ['mongs'] as const,
@@ -25,6 +25,8 @@ export const mongsKeys = {
   battleStats: () => [...mongsKeys.all, 'battle-stats'] as const,
   stats: () => [...mongsKeys.all, 'stats'] as const,
   master: (kind: string) => [...mongsKeys.all, 'master', kind] as const,
+  missions: () => [...mongsKeys.all, 'missions'] as const,
+  accountMissions: (accountId: number) => [...mongsKeys.all, 'account-missions', accountId] as const,
 };
 
 const isId = (v: number) => Number.isFinite(v) && v > 0;
@@ -75,7 +77,7 @@ export function useMemberMutations(accountId: number) {
   const invalidate = () => qc.invalidateQueries({ queryKey: mongsKeys.all });
   return {
     adjustStarPoint: useMutation({
-      mutationFn: (body: { delta: number; reason?: string }) => membersApi.adjustStarPoint(accountId, body),
+      mutationFn: (body: { delta: number }) => membersApi.adjustStarPoint(accountId, body),
       onSuccess: invalidate,
     }),
     updateSlotCount: useMutation({ mutationFn: (slotCount: number) => membersApi.updateSlotCount(accountId, slotCount), onSuccess: invalidate }),
@@ -126,13 +128,18 @@ export function useMongMutations(mongId: number) {
   return {
     updateStatus: useMutation({ mutationFn: (body: MongStatusPatch) => mongDetailApi.updateStatus(mongId, body), onSuccess: invalidate }),
     updateState: useMutation({
-      mutationFn: (body: { stateCode: MongStateCode; reason?: string }) => mongDetailApi.updateState(mongId, body),
+      mutationFn: (body: { stateCode: MongStateCode }) => mongDetailApi.updateState(mongId, body),
       onSuccess: invalidate,
     }),
     updateSleep: useMutation({ mutationFn: (body: MongSleepPatch) => mongDetailApi.updateSleep(mongId, body), onSuccess: invalidate }),
     remove: useMutation({ mutationFn: () => mongDetailApi.remove(mongId), onSuccess: invalidate }),
     pauseTask: useMutation({ mutationFn: mongDetailApi.pauseTask, onSuccess: invalidate }),
     resumeTask: useMutation({ mutationFn: mongDetailApi.resumeTask, onSuccess: invalidate }),
+    deleteTask: useMutation({ mutationFn: mongDetailApi.deleteTask, onSuccess: invalidate }),
+    createTask: useMutation({
+      mutationFn: (schedulerTypeCode: MongSchedulerTypeCode) => mongDetailApi.createTask(mongId, schedulerTypeCode),
+      onSuccess: invalidate,
+    }),
     grantInventory: useMutation({
       mutationFn: (body: { inventoryCode: string; inventoryTypeCode: 'FOOD' | 'SNACK' }) => mongDetailApi.grantInventory(mongId, body),
       onSuccess: invalidate,
@@ -163,8 +170,11 @@ export function useBattleMutations() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: mongsKeys.all });
   return {
-    removeFromQueue: useMutation({ mutationFn: battleApi.removeFromQueue, onSuccess: invalidate }),
-    terminate: useMutation({ mutationFn: battleApi.terminate, onSuccess: invalidate }),
+    // onSuccess 가 아니라 onSettled 다. 배틀은 서버가 뒤에서도 상태를 바꾼다 - 입장 기한
+    // 스위퍼가 5초마다 돌며 ENTERING 을 CANCELED 로 마감한다. 실패는 대개 "그 사이 상태가
+    // 바뀌었다"(409)이므로, 실패했을 때야말로 목록을 다시 읽어야 낡은 행이 사라진다.
+    removeFromQueue: useMutation({ mutationFn: battleApi.removeFromQueue, onSettled: invalidate }),
+    terminate: useMutation({ mutationFn: battleApi.terminate, onSettled: invalidate }),
   };
 }
 
@@ -198,4 +208,32 @@ export function useDeleteMaster() {
     mutationFn: ({ kind, id }: { kind: MasterKind; id: string | number }) => masterDeleteApi.remove(kind, id),
     onSuccess: () => qc.invalidateQueries({ queryKey: mongsKeys.all }),
   });
+}
+
+/* ── 미션 ──────────────────────────────────────────────────────────────── */
+export const useMissions = () => useQuery({ queryKey: mongsKeys.missions(), queryFn: missionsApi.list });
+
+/** 계정 진행 현황. 계정 ID 를 넣기 전에는 부르지 않는다 */
+export const useAccountMissions = (accountId: number) =>
+  useQuery({
+    queryKey: mongsKeys.accountMissions(accountId),
+    queryFn: () => missionsApi.accountMissions(accountId),
+    enabled: isId(accountId),
+  });
+
+export function useMissionMutations() {
+  const qc = useQueryClient();
+  const invalidate = () => qc.invalidateQueries({ queryKey: mongsKeys.all });
+  return {
+    create: useMutation({ mutationFn: missionsApi.create, onSuccess: invalidate }),
+    update: useMutation({
+      mutationFn: ({ missionId, ...body }: { missionId: number } & MissionUpdateBody) => missionsApi.update(missionId, body),
+      onSuccess: invalidate,
+    }),
+    setActive: useMutation({
+      mutationFn: ({ missionId, isActive }: { missionId: number; isActive: boolean }) => missionsApi.setActive(missionId, isActive),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({ mutationFn: missionsApi.remove, onSuccess: invalidate }),
+  };
 }
