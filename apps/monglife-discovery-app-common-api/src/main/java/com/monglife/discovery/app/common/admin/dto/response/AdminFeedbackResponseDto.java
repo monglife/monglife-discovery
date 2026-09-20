@@ -33,6 +33,11 @@ public class AdminFeedbackResponseDto {
 
     private final String status;
 
+    /**
+     * 앱 진단 로그. 별도 표에 있어 상세에서만 채워진다 - 목록 응답에서는 항상 null 이다.
+     */
+    private final String logs;
+
     // 기본 ObjectMapper 가 날짜를 배열로 내보내므로 ISO 문자열로 고정한다
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd\'T\'HH:mm:ss")
     private final LocalDateTime createdAt;
@@ -40,7 +45,7 @@ public class AdminFeedbackResponseDto {
     private final AdminFeedbackReplyResponseDto reply;
 
     @Builder
-    public AdminFeedbackResponseDto(Long reportId, Long accountId, String email, String name, String deviceId, String deviceName, String appPackageName, String buildVersion, String title, String content, String status, LocalDateTime createdAt, AdminFeedbackReplyResponseDto reply) {
+    public AdminFeedbackResponseDto(Long reportId, Long accountId, String email, String name, String deviceId, String deviceName, String appPackageName, String buildVersion, String title, String content, String status, String logs, LocalDateTime createdAt, AdminFeedbackReplyResponseDto reply) {
         this.reportId = reportId;
         this.accountId = accountId;
         this.email = email;
@@ -52,6 +57,7 @@ public class AdminFeedbackResponseDto {
         this.title = title;
         this.content = content;
         this.status = status;
+        this.logs = logs;
         this.createdAt = createdAt;
         this.reply = reply;
     }

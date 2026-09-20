@@ -43,7 +43,7 @@ public class FeedbackController {
 
         appFeedbackService.createFeedback(
                 passport.getAccountId(), passport.getDeviceId(), accessToken,
-                dto.getDeviceName(), dto.getTitle(), dto.getContent()
+                dto.getDeviceName(), dto.getTitle(), dto.getContent(), dto.getLogs()
         );
 
         return ResponseEntity.ok().body(FeedbackResponse.DISCOVERY_APP_FEEDBACK_CREATE.toResponseDto());

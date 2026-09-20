@@ -19,7 +19,7 @@ public class AppFeedbackService {
      * 앱 오류 신고 등록. 패키지명·빌드 버전은 액세스 토큰(세션)에서 가져온다.
      */
     @Transactional
-    public FeedbackVo createFeedback(Long accountId, String deviceId, String accessToken, String deviceName, String title, String content) {
+    public FeedbackVo createFeedback(Long accountId, String deviceId, String accessToken, String deviceName, String title, String content, String logs) {
         TokenVo token = tokenService.getToken(accessToken);
         return feedbackService.createFeedback(FeedbackVo.builder()
                 .accountId(accountId)
@@ -29,6 +29,7 @@ public class AppFeedbackService {
                 .buildVersion(token.getBuildVersion())
                 .title(title)
                 .content(content)
+                .logs(logs)
                 .build());
     }
 }

@@ -20,9 +20,14 @@ export interface ErrorReport {
   buildVersion: string;
   title: string;
   content: string;
+  /**
+   * 앱이 붙인 진단 로그(logcat 조각). 별도 표에 있어 상세 응답에만 담긴다.
+   * 구버전 앱이 보낸 신고에는 없다.
+   */
+  logs?: string | null;
   status: ErrorReportStatus;
   createdAt: string;
   reply?: ErrorReportReply | null;
 }
 
-export type ErrorReportSummary = Omit<ErrorReport, 'content'>;
+export type ErrorReportSummary = Omit<ErrorReport, 'content' | 'logs'>;
