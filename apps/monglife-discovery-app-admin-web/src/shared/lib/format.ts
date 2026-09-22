@@ -36,3 +36,16 @@ export function maskToken(token: string, visible = 8) {
   if (token.length <= visible * 2) return token;
   return `${token.slice(0, visible)}…${token.slice(-visible)}`;
 }
+
+/** "14:03:27" — 마지막 갱신 시각처럼 같은 날 안에서만 쓰는 표기 */
+export function formatTime(value?: string | number | null) {
+  if (!value) return '-';
+  return new Date(value).toLocaleTimeString('en-GB', { hour12: false });
+}
+
+/** "2026. 09. 16. 22:31:03" — 마지막 갱신 시각처럼 날짜까지 필요한 표기 */
+export function formatDateTimeSec(value?: string | number | null) {
+  if (!value) return '-';
+  const d = new Date(value);
+  return `${formatDate(d.getTime())} ${d.toLocaleTimeString('en-GB', { hour12: false })}`;
+}

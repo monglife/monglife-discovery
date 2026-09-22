@@ -80,6 +80,7 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/admin/**", config);
         source.registerCorsConfiguration("/public/admin/**", config);
         source.registerCorsConfiguration("/public/auth/logout", config);
+        source.registerCorsConfiguration("/public/auth/reissue", config);
         return source;
     }
 

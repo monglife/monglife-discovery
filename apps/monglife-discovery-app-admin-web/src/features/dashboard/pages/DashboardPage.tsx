@@ -7,18 +7,11 @@ import { Card, CardBody, CardHeader, CardTitle, PageHeader, Select } from '@/sha
 import { formatNumber } from '@/shared/lib/format';
 
 export function DashboardPage() {
-  const [days, setDays] = useState(14);
+  const [loginDays, setLoginDays] = useState(14);
+  const [signupDays, setSignupDays] = useState(14);
   const users = useUserStats();
-  const logins = useLoginStats(days);
-  const signups = useSignupStats(days);
-
-  const periodSelect = (
-    <Select className="w-32" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-      <option value={7}>최근 7일</option>
-      <option value={14}>최근 14일</option>
-      <option value={30}>최근 30일</option>
-    </Select>
-  );
+  const logins = useLoginStats(loginDays);
+  const signups = useSignupStats(signupDays);
 
   return (
     <>
@@ -33,7 +26,7 @@ export function DashboardPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>로그인 추이</CardTitle>
-          {periodSelect}
+          <PeriodSelect value={loginDays} onChange={setLoginDays} />
         </CardHeader>
         <CardBody>
           <TrendChart
@@ -47,7 +40,7 @@ export function DashboardPage() {
       <Card className="mt-4">
         <CardHeader>
           <CardTitle>일일 가입자</CardTitle>
-          <span className="text-xs text-muted-foreground">최근 {days}일</span>
+          <PeriodSelect value={signupDays} onChange={setSignupDays} />
         </CardHeader>
         <CardBody>
           <TrendChart
@@ -58,5 +51,15 @@ export function DashboardPage() {
         </CardBody>
       </Card>
     </>
+  );
+}
+
+function PeriodSelect({ value, onChange }: { value: number; onChange: (days: number) => void }) {
+  return (
+    <Select className="w-32" value={value} onChange={(e) => onChange(Number(e.target.value))}>
+      <option value={7}>최근 7일</option>
+      <option value={14}>최근 14일</option>
+      <option value={30}>최근 30일</option>
+    </Select>
   );
 }

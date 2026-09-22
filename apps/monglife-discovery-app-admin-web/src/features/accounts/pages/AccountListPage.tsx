@@ -16,8 +16,8 @@ export function AccountListPage() {
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState('');
   const [platform, setPlatform] = useState('');
-  const [role, setRole] = useState('');
-  const [status, setStatus] = useState('');
+  const [role, setRole] = useState('NORMAL');
+  const [status, setStatus] = useState('ACTIVE');
   const [sort, setSort] = useState<SortState>({ key: 'accountId', dir: 'desc' });
   const navigate = useNavigate();
   const { data, isLoading } = useAccounts({
@@ -49,7 +49,7 @@ export function AccountListPage() {
         description="사용자 계정 목록"
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <FilterSelect label="플랫폼" value={platform} onChange={reset(setPlatform)} options={['google', 'apple', 'kakao']} className="w-full sm:w-32" />
+            <FilterSelect label="플랫폼" value={platform} onChange={reset(setPlatform)} options={['google', 'apple', 'kakao']} className="w-full sm:w-40" />
             <FilterSelect label="권한" value={role} onChange={reset(setRole)} options={['ADMIN', 'NORMAL']} className="w-full sm:w-32" />
             <FilterSelect label="상태" value={status} onChange={reset(setStatus)} options={[{ value: 'ACTIVE', label: '정상' }, { value: 'DELETED', label: '탈퇴' }]} className="w-full sm:w-32" />
             <SearchInput value={query} onChange={reset(setQuery)} placeholder="이메일 / 이름 / 소셜 ID" className="w-full sm:w-64" />

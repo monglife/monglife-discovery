@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,10 +18,23 @@ public class VerifyBuildVersionDto {
 
     private Boolean mustUpdate;
 
+    /** 서버 점검 중인지. 점검 중이 아니면 아래 셋은 전부 null 이다 */
+    private Boolean underMaintenance;
+
+    private String maintenanceMessage;
+
+    private LocalDateTime maintenanceStartAt;
+
+    private LocalDateTime maintenanceEndAt;
+
     @Builder
-    public VerifyBuildVersionDto(String appPackageName, String buildVersion, Boolean mustUpdate) {
+    public VerifyBuildVersionDto(String appPackageName, String buildVersion, Boolean mustUpdate, Boolean underMaintenance, String maintenanceMessage, LocalDateTime maintenanceStartAt, LocalDateTime maintenanceEndAt) {
         this.appPackageName = appPackageName;
         this.buildVersion = buildVersion;
         this.mustUpdate = mustUpdate;
+        this.underMaintenance = underMaintenance;
+        this.maintenanceMessage = maintenanceMessage;
+        this.maintenanceStartAt = maintenanceStartAt;
+        this.maintenanceEndAt = maintenanceEndAt;
     }
 }

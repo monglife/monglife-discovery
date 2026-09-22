@@ -7,6 +7,8 @@ export interface EmailCodeResponse {
   expiresIn: number;
   /** 재발송 가능까지(초) */
   resendAfter: number;
+  /** true 면 코드가 발송되지 않았고 아무 코드로 verify 하면 된다 (서버 local/dev) */
+  skipVerify?: boolean;
 }
 
 interface VerifyResponse {

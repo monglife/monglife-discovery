@@ -43,6 +43,8 @@ public class AdminAuthService {
     private final MailService mailService;
     private final long expirationSeconds;
     private final long resendAfterSeconds;
+    /** true 면 코드 발송·검증을 건너뛰고 관리자 계정 확인만으로 로그인한다 (local/dev 전용) */
+    private final boolean skipVerify;
     private final SecureRandom random = new SecureRandom();
 
     public AdminAuthService(
@@ -52,7 +54,8 @@ public class AdminAuthService {
             TokenProvider tokenProvider,
             MailService mailService,
             @Value("${env.admin.email-code.expiration-seconds}") long expirationSeconds,
-            @Value("${env.admin.email-code.resend-after-seconds}") long resendAfterSeconds
+            @Value("${env.admin.email-code.resend-after-seconds}") long resendAfterSeconds,
+            @Value("${env.admin.email-code.skip-verify}") boolean skipVerify
     ) {
         this.accountService = accountService;
         this.adminEmailCodeService = adminEmailCodeService;
@@ -61,6 +64,11 @@ public class AdminAuthService {
         this.mailService = mailService;
         this.expirationSeconds = expirationSeconds;
         this.resendAfterSeconds = resendAfterSeconds;
+        this.skipVerify = skipVerify;
+    }
+
+    public boolean isSkipVerify() {
+        return skipVerify;
     }
 
     public long getExpirationSeconds() {
@@ -74,11 +82,16 @@ public class AdminAuthService {
     /**
      * 1단계: 관리자 계정인지 확인하고 인증 코드를 메일로 보낸다.
      * 계정이 없어도 NotAdminAccount 로 응답해 계정 존재 여부를 노출하지 않는다.
+     * skip-verify 면 관리자 계정 확인만 하고 코드를 만들지 않는다.
      */
     @Transactional
     public void issueEmailCode(String email) {
 
         AccountVo account = findAdminAccount(email);
+
+        if (skipVerify) {
+            return;
+        }
 
         adminEmailCodeService.getCode(account.getEmail()).ifPresent(existing -> {
             long elapsed = Duration.between(existing.getIssuedAt(), LocalDateTime.now()).getSeconds();
@@ -101,21 +114,24 @@ public class AdminAuthService {
 
     /**
      * 2단계: 코드 검증 → 토큰 발급. 코드는 1회용이다.
+     * skip-verify 면 코드를 보지 않고 바로 발급한다.
      */
     @Transactional
     public LoginDto verifyEmailCode(String email, String code) {
 
         AccountVo account = findAdminAccount(email);
 
-        AdminEmailCodeVo issued = adminEmailCodeService.getCode(account.getEmail())
-                // TTL 이 지나면 Redis 가 지우므로 "없음" 은 만료로 본다
-                .orElseThrow(() -> new ExpiredEmailCodeException(email));
+        if (!skipVerify) {
+            AdminEmailCodeVo issued = adminEmailCodeService.getCode(account.getEmail())
+                    // TTL 이 지나면 Redis 가 지우므로 "없음" 은 만료로 본다
+                    .orElseThrow(() -> new ExpiredEmailCodeException(email));
 
-        if (!issued.getCode().equals(code)) {
-            throw new InvalidEmailCodeException(email);
+            if (!issued.getCode().equals(code)) {
+                throw new InvalidEmailCodeException(email);
+            }
+
+            adminEmailCodeService.deleteCode(account.getEmail());
         }
-
-        adminEmailCodeService.deleteCode(account.getEmail());
 
         // 기존 관리자 세션 정리 (같은 기기 식별자)
         tokenService.deleteToken(account.getAccountId(), ADMIN_DEVICE_ID);

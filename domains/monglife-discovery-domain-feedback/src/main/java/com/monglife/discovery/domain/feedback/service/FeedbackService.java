@@ -1,7 +1,9 @@
 package com.monglife.discovery.domain.feedback.service;
 
 import com.monglife.discovery.domain.feedback.entity.FeedbackEntity;
+import com.monglife.discovery.domain.feedback.entity.FeedbackLogEntity;
 import com.monglife.discovery.domain.feedback.exception.NotExistsFeedbackException;
+import com.monglife.discovery.domain.feedback.repository.FeedbackLogRepository;
 import com.monglife.discovery.domain.feedback.repository.FeedbackRepository;
 import com.monglife.discovery.domain.feedback.vo.FeedbackSearchVo;
 import com.monglife.discovery.domain.feedback.vo.FeedbackVo;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
+    private final FeedbackLogRepository feedbackLogRepository;
 
     static FeedbackVo toVo(FeedbackEntity e) {
         return FeedbackVo.builder()
@@ -41,7 +44,7 @@ public class FeedbackService {
      */
     @Transactional
     public FeedbackVo createFeedback(FeedbackVo vo) {
-        return toVo(feedbackRepository.save(FeedbackEntity.builder()
+        FeedbackVo saved = toVo(feedbackRepository.save(FeedbackEntity.builder()
                 .accountId(vo.getAccountId())
                 .deviceId(vo.getDeviceId())
                 .deviceName(vo.getDeviceName())
@@ -50,12 +53,27 @@ public class FeedbackService {
                 .title(vo.getTitle())
                 .content(vo.getContent())
                 .build()));
+
+        // 로그는 부수적이다. 없으면 없는 대로 둔다 - 신고 본문이 더 중요하다.
+        if (vo.getLogs() != null && !vo.getLogs().isBlank()) {
+            feedbackLogRepository.save(FeedbackLogEntity.builder()
+                    .feedbackId(saved.getFeedbackId())
+                    .logs(vo.getLogs())
+                    .build());
+        }
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
     public FeedbackVo getFeedback(Long feedbackId) {
-        return toVo(feedbackRepository.findById(feedbackId)
+        FeedbackVo vo = toVo(feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new NotExistsFeedbackException(feedbackId)));
+
+        // 상세에서만 로그를 붙인다. 목록(getFeedbacks)은 건드리지 않는다 - 표를 가른 이유다.
+        return feedbackLogRepository.findByFeedbackId(feedbackId)
+                .map(log -> vo.toBuilder().logs(log.getLogs()).build())
+                .orElse(vo);
     }
 
     @Transactional(readOnly = true)

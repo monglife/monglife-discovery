@@ -57,7 +57,7 @@ class AdminAuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        adminAuthService = new AdminAuthService(accountService, adminEmailCodeService, tokenService, tokenProvider, mailService, 300, 30);
+        adminAuthService = new AdminAuthService(accountService, adminEmailCodeService, tokenService, tokenProvider, mailService, 300, 30, false);
         given(accountService.getAccount(EMAIL)).willReturn(account(RoleCode.ADMIN.getRole()));
         given(adminEmailCodeService.getCode(EMAIL)).willReturn(Optional.empty());
         given(tokenProvider.generateAccessToken(anyLong(), anyString(), anyString(), anyString())).willReturn("access");
@@ -141,5 +141,30 @@ class AdminAuthServiceTest {
     @DisplayName("코드 검증 - 저장된 코드가 없으면(만료) ExpiredEmailCode")
     void verifyEmailCode_expired() {
         assertThatThrownBy(() -> adminAuthService.verifyEmailCode(EMAIL, "123456")).isInstanceOf(ExpiredEmailCodeException.class);
+    }
+
+    @Test
+    @DisplayName("skip-verify - 코드를 만들지도 보내지도 않고, 아무 코드로 토큰을 발급한다")
+    void skipVerify() {
+        adminAuthService = new AdminAuthService(accountService, adminEmailCodeService, tokenService, tokenProvider, mailService, 300, 30, true);
+
+        adminAuthService.issueEmailCode(EMAIL);
+        verify(adminEmailCodeService, never()).saveCode(any());
+        verify(mailService, never()).sendAdminEmailCode(anyString(), anyString(), anyLong());
+
+        LoginDto login = adminAuthService.verifyEmailCode(EMAIL, "000000");
+        assertThat(login.getAccessToken()).isEqualTo("access");
+        verify(adminEmailCodeService, never()).getCode(EMAIL);
+        verify(tokenService, times(1)).createToken(any());
+    }
+
+    @Test
+    @DisplayName("skip-verify 여도 관리자가 아니면 거부한다")
+    void skipVerify_notAdmin() {
+        adminAuthService = new AdminAuthService(accountService, adminEmailCodeService, tokenService, tokenProvider, mailService, 300, 30, true);
+        given(accountService.getAccount(EMAIL)).willReturn(account(RoleCode.NORMAL.getRole()));
+
+        assertThatThrownBy(() -> adminAuthService.verifyEmailCode(EMAIL, "000000")).isInstanceOf(NotAdminAccountException.class);
+        verify(tokenService, never()).createToken(any());
     }
 }

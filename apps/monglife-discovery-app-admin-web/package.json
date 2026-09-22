@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "PROFILE=local vite",
-    "dev:dev": "PROFILE=dev vite",
+    "dev": "PROFILE=dev vite",
+    "dev:stg": "PROFILE=stg vite",
+    "dev:prd": "PROFILE=prd vite",
     "build": "tsc -b && vite build",
     "build:stg": "PROFILE=stg npm run build",
     "build:prd": "PROFILE=prd npm run build",

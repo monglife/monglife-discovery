@@ -58,6 +58,12 @@ export function LoginPage() {
     try {
       const res = await requestEmailCode(target);
       setEmail(target);
+      if (res.skipVerify) {
+        // 서버가 인증을 건너뛰는 환경(local/dev) — 코드 입력 없이 바로 로그인
+        await verifyEmailCode(target, '0'.repeat(CODE_LENGTH));
+        navigate(fromPath(), { replace: true });
+        return;
+      }
       setIssue({ ...res, at: Date.now() });
       setCode('');
       setStep('code');
@@ -68,14 +74,15 @@ export function LoginPage() {
     }
   };
 
+  const fromPath = () => (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
+
   const verify = async (value: string) => {
     if (value.length !== CODE_LENGTH || busy) return;
     setError(null);
     setBusy(true);
     try {
       await verifyEmailCode(email, value);
-      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/';
-      navigate(from, { replace: true });
+      navigate(fromPath(), { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : '인증에 실패했습니다.');
       setCode('');

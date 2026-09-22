@@ -7,6 +7,7 @@ import com.monglife.discovery.domain.account.exception.NotExistsTokenException;
 import com.monglife.discovery.domain.device.exception.AlreadyExistsAppVersionException;
 import com.monglife.discovery.domain.device.exception.NotExistsAppVersionException;
 import com.monglife.discovery.domain.device.exception.NotExistsDeviceException;
+import com.monglife.discovery.domain.device.exception.NotExistsMaintenanceException;
 import com.monglife.discovery.domain.feedback.exception.NotExistsFeedbackException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ public class AdminExceptionHandler {
             NotExistsDeviceException.class,
             NotExistsAppVersionException.class,
             NotExistsFeedbackException.class,
+            NotExistsMaintenanceException.class,
             NotExistsTokenException.class
     })
     private ResponseEntity<ResponseDto<Map<String, Object>>> handleNotFound(com.monglife.core.exception.ErrorException e) {

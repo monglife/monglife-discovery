@@ -2,7 +2,6 @@ package com.monglife.discovery.app.common.global.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monglife.core.dto.response.ResponseDto;
-import com.monglife.core.enums.response.GlobalResponse;
 import com.monglife.core.vo.passport.PassportDataVo;
 import com.monglife.core.vo.passport.PassportVo;
 import com.monglife.discovery.app.common.auth.enums.AuthErrorCode;
@@ -67,9 +66,11 @@ public class AuthenticationFilter extends GenericFilterBean {
                 chain.doFilter(wrapperRequest, response);
 
             } catch (Exception e) {
+                // 게이트웨이(GlobalExceptionHandler)와 같이 401 로 내린다. 예전엔 본문만 401 이고 상태는 500 이라
+                // 클라이언트가 토큰 만료를 구분하지 못해 재발급 대신 오류로 처리했다.
                 ResponseDto<?> responseDto = AuthErrorCode.DISCOVERY_APP_AUTH_ACCESS_TOKEN_EXPIRED.toResponseDto(HttpStatus.UNAUTHORIZED.value());
                 response.setContentType("application/json; charset=UTF-8");
-                response.setStatus(GlobalResponse.INTERNAL_SERVER_ERROR.getHttpStatus());
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 response.getWriter().write(objectMapper.writeValueAsString(responseDto));
             }
         } else {

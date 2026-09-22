@@ -8,7 +8,7 @@
     <script>
       // 첫 페인트 전에 테마 적용 (기본 다크). Header.tsx 의 useTheme 과 같은 규칙.
       try {
-        if (localStorage.getItem('monglife.admin.theme') !== 'light') document.documentElement.classList.add('dark');
+        if (localStorage.getItem('monglife.admin.theme') === 'dark') document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>
   </head>

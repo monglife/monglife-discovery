@@ -1,14 +1,15 @@
 import { useState } from 'react';
+import { useIsFetching, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { useAccount, useAccountDevices, useAccountLoginHistories, usePatchAccount } from '../queries';
+import { ArrowLeft, Plus, RefreshCw } from 'lucide-react';
+import { accountKeys, useAccount, useAccountDevices, useAccountLoginHistories, usePatchAccount } from '../queries';
 import type { LoginHistory } from '../types';
 import { PlatformBadge } from '../components/PlatformBadge';
 import type { Device } from '@/features/devices/types';
 import { useConnectDevice, useDisconnectDevice } from '@/features/devices/queries';
 import { DeviceDetailDialog } from '@/features/devices/components/DeviceDetailDialog';
 import { DevicePickerDialog } from '@/features/devices/components/DevicePickerDialog';
-import { useRevokeAccountTokens, useRevokeToken, useTokens } from '@/features/sessions/queries';
+import { sessionKeys, useRevokeAccountTokens, useRevokeToken, useTokens } from '@/features/sessions/queries';
 import type { Token } from '@/features/sessions/types';
 import { TokenDetailDialog } from '@/features/sessions/components/TokenDetailDialog';
 import { DataTable, type Column } from '@/shared/components/DataTable';
@@ -27,6 +28,13 @@ export function AccountDetailPage() {
   const account = useAccount(id);
   const patch = usePatchAccount(id);
   const revokeAll = useRevokeAccountTokens();
+  const qc = useQueryClient();
+  // 계정 정보 + 기기/로그인 이력(detail 하위) + 토큰 목록을 한 번에 다시 불러온다
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: accountKeys.detail(id) });
+    void qc.invalidateQueries({ queryKey: sessionKeys.all });
+  };
+  const refreshing = useIsFetching({ queryKey: accountKeys.detail(id) }) + useIsFetching({ queryKey: sessionKeys.all }) > 0;
 
   if (account.isLoading) return <div className="h-40 animate-pulse rounded bg-surface-muted" />;
   if (!account.data) return <p className="text-sm text-muted-foreground">계정을 찾을 수 없습니다.</p>;
@@ -41,9 +49,15 @@ export function AccountDetailPage() {
         title={a.name}
         description={a.email}
         actions={
-          <Button variant="danger" size="sm" className="w-full sm:w-auto" onClick={() => setConfirmRevoke(true)}>
-            모든 세션 강제 로그아웃
-          </Button>
+          <>
+            <Button variant="secondary" size="sm" onClick={refresh} disabled={refreshing} aria-label="새로고침" title="새로고침">
+              <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
+              <span className="hidden sm:inline">새로고침</span>
+            </Button>
+            <Button variant="danger" size="sm" className="flex-1 sm:flex-none" onClick={() => setConfirmRevoke(true)}>
+              모든 세션 강제 로그아웃
+            </Button>
+          </>
         }
       />
 

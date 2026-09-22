@@ -20,12 +20,15 @@ import com.monglife.discovery.domain.account.vo.AccountVo;
 import com.monglife.discovery.domain.account.vo.LoginHistoryVo;
 import com.monglife.discovery.domain.account.vo.TokenVo;
 import com.monglife.discovery.domain.device.service.AppVersionService;
+import com.monglife.discovery.domain.device.service.MaintenanceService;
 import com.monglife.discovery.domain.device.vo.AppVersionVo;
+import com.monglife.discovery.domain.device.vo.MaintenanceVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,8 @@ public class AuthService {
     private final AccountService accountService;
 
     private final AppVersionService appVersionService;
+
+    private final MaintenanceService maintenanceService;
 
     private final TokenService tokenService;
 
@@ -54,8 +59,8 @@ public class AuthService {
      */
     @Transactional
     public void join(String email, String name, String socialAccountId, String role) {
-        // 구 경로(카카오 SDK). 플랫폼은 관리자 화면 표시용이다
-        join(email, name, socialAccountId, role, AccountPlatform.KAKAO);
+        // 구 경로. 플랫폼을 알 수 없으므로 NULL 로 둔다 (DB 기본값에 맡긴다)
+        join(email, name, socialAccountId, role, null);
     }
 
     private void join(String email, String name, String socialAccountId, String role, AccountPlatform platform) {
@@ -65,7 +70,7 @@ public class AuthService {
                 .name(name)
                 .socialAccountId(socialAccountId)
                 .role(role)
-                .platform(platform.name())
+                .platform(platform == null ? null : platform.name())
                 .build();
 
         accountService.createAccount(accountVo);
@@ -96,9 +101,6 @@ public class AuthService {
         if (accountVo.getSocialAccountId() == null || accountVo.getSocialAccountId().isBlank()) {
             accountService.updateSocialAccountId(accountVo.getEmail(), socialAccountId);
         }
-
-        // 플랫폼 백필 (platform 컬럼 도입 전 계정)
-        accountService.fillPlatformIfEmpty(accountVo.getAccountId(), AccountPlatform.KAKAO.name());
 
         return issueLogin(accountVo.getAccountId(), deviceId, appPackageName, deviceName, buildVersion);
     }
@@ -387,6 +389,13 @@ public class AuthService {
 
     /**
      * BuildVersion 검증
+     *
+     * <p>앱이 진입 때 부르는 유일한 관문이라 서버 점검 여부도 여기에 같이 실어 보낸다.
+     * 점검이라고 예외를 던지지는 않는다 — 멈출지는 앱이 판단한다.
+     *
+     * <p>버전 조회가 먼저다. 등록되지 않은 버전이면 지금처럼 {@code NotExistsAppVersionException}
+     * 이고 점검 안내도 받지 못한다. 새 앱 버전은 배포 전에 행을 넣어 두어야 한다는 기존 규칙 그대로다.
+     *
      * @param appPackageName 앱 패키지 명
      * @param buildVersion 빌드 버전
      * @return 검증 정보 Dto
@@ -396,10 +405,18 @@ public class AuthService {
 
         AppVersionVo appVersionVo = appVersionService.getAppVersion(appPackageName, buildVersion);
 
+        // 진입을 시도하는 앱을 넘긴다. 그 앱을 대상으로 하거나 전역인 점검만 걸린다 -
+        // 웨어 점검이 iOS 를 막지 않는다.
+        Optional<MaintenanceVo> maintenanceVo = maintenanceService.getActiveMaintenance(appPackageName);
+
         return VerifyBuildVersionDto.builder()
                 .appPackageName(appVersionVo.getAppPackageName())
                 .buildVersion(appVersionVo.getBuildVersion())
                 .mustUpdate(appVersionVo.getMustUpdate())
+                .underMaintenance(maintenanceVo.isPresent())
+                .maintenanceMessage(maintenanceVo.map(MaintenanceVo::getMessage).orElse(null))
+                .maintenanceStartAt(maintenanceVo.map(MaintenanceVo::getStartAt).orElse(null))
+                .maintenanceEndAt(maintenanceVo.map(MaintenanceVo::getEndAt).orElse(null))
                 .build();
     }
 

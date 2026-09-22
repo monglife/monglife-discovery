@@ -38,6 +38,7 @@ public class AdminAuthController {
         AdminEmailCodeResponseDto response = AdminEmailCodeResponseDto.builder()
                 .expiresIn(adminAuthService.getExpirationSeconds())
                 .resendAfter(adminAuthService.getResendAfterSeconds())
+                .skipVerify(adminAuthService.isSkipVerify())
                 .build();
 
         return ResponseEntity.ok().body(AdminAuthResponse.DISCOVERY_APP_ADMIN_AUTH_EMAIL_CODE.toResponseDto(response));

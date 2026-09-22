@@ -13,6 +13,10 @@ import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Dialog, Field, In
 
 const SIZE = 15;
 
+/** 전송 대상 표기: 이메일 (이름) */
+const accountLabel = (t: { accountId: number; email?: string; name?: string }) =>
+  `${t.email ?? `#${t.accountId}`}${t.name ? ` (${t.name})` : ''}`;
+
 const schema = z.object({
   title: z.string().min(1, '제목을 입력하세요.').max(100),
   body: z.string().min(1, '내용을 입력하세요.').max(500),
@@ -36,7 +40,7 @@ export function NotificationPage() {
   const targets = useMemo(() => {
     const byAccount = new Map<number, { accountId: number; email?: string; name?: string; devices: NotifiableDevice[] }>();
     for (const d of selected.values()) {
-      const t = byAccount.get(d.accountId) ?? { accountId: d.accountId, email: d.email, name: d.name, devices: [] };
+      const t = byAccount.get(d.accountId) ?? { accountId: d.accountId, email: d.accountEmail ?? undefined, name: d.accountName ?? undefined, devices: [] };
       t.devices.push(d);
       byAccount.set(d.accountId, t);
     }
@@ -74,8 +78,8 @@ export function NotificationPage() {
       mobileAlign: 'start',
       cell: (d) => <input type="checkbox" className="accent-primary" checked={selected.has(d.deviceId)} onChange={() => toggle(d)} onClick={(e) => e.stopPropagation()} />,
     },
-    { key: 'account', header: '계정', cell: (d) => <span>{d.email ?? `#${d.accountId}`}<span className="ml-1 text-muted-foreground">#{d.accountId}</span></span> },
-    { key: 'name', header: '이름', cell: (d) => d.name ?? '-' },
+    { key: 'email', header: '이메일', cell: (d) => d.accountEmail ?? `#${d.accountId}` },
+    { key: 'name', header: '이름', cell: (d) => d.accountName ?? '-' },
     { key: 'device', header: '기기', cell: (d) => <span title={d.deviceId}>{d.deviceName}</span> },
   ];
 
@@ -136,10 +140,8 @@ export function NotificationPage() {
                     {targets.map((t) => (
                       <li key={t.accountId} className="flex items-center gap-2 px-3 py-2 text-sm">
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate">{t.email ?? `#${t.accountId}`}</span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {t.name ?? ''} · {t.devices.map((d) => d.deviceName).join(', ')}
-                          </span>
+                          <span className="block truncate">{accountLabel(t)}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{t.devices.map((d) => d.deviceName).join(', ')}</span>
                         </span>
                         <button type="button" onClick={() => removeAccount(t.accountId)} className="rounded p-1 text-muted-foreground hover:bg-surface-muted" aria-label="제거">
                           <X className="size-3.5" />
@@ -189,7 +191,7 @@ export function NotificationPage() {
               <ul className="max-h-40 divide-y overflow-y-auto rounded-md border">
                 {targets.map((t) => (
                   <li key={t.accountId} className="flex items-center justify-between gap-3 px-3 py-1.5">
-                    <span className="truncate">{t.email ?? `#${t.accountId}`} <span className="text-muted-foreground">{t.name}</span></span>
+                    <span className="truncate">{accountLabel(t)}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">{t.devices.length}대</span>
                   </li>
                 ))}
